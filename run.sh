@@ -1,4 +1,5 @@
 #!/bin/sh
+PATH=~/galaxy-python:$PATH
 
 cd "$(dirname "$0")"
 
