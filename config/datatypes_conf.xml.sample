@@ -351,6 +351,12 @@
     <!-- genome graphs ucsc file - first col is always marker then numeric values to plot -->
     <datatype extension="gg" type="galaxy.datatypes.genetics:GenomeGraphs"/>
     <!-- part of linkage format pedigree -->
+    <datatype extension="link_map" type="galaxy.datatypes.genetics:Linkage" />
+    <datatype extension="link_ped" type="galaxy.datatypes.genetics:Linkage" />
+    <datatype extension="link_dat" type="galaxy.datatypes.genetics:Linkage" />
+    <datatype extension="ihaplo" type="galaxy.datatypes.genetics:Linkage" />
+    <datatype extension="fparam_mpt" type="galaxy.datatypes.genetics:Linkage" />
+    <datatype extension="founder" type="galaxy.datatypes.genetics:Linkage" />
     <!-- information redundancy (LD) filtered plink pbed -->
     <datatype extension="ldindep" type="galaxy.datatypes.genetics:ldIndep" display_in_upload="true">
     </datatype>
