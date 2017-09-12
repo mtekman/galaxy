@@ -1,14 +1,14 @@
 
-<tool id="allegro_1" name="Compute linkage and/or haplotypes via Allegro" version="0.1.0" >
-    <description>For a given input map set, pedigree file, and data file</description>
+<tool id="allegro_1" name="Allegro2" version="0.1.0" >
+    <description>Computes linkage and estimates haplotypes for a given input map set, pedigree file, and data file</description>
     <command>allegro.sh $inp_ped $inp_dat $analysis_type</command>
     <inputs>
       <!-- Not needed yet
 	   <param name="inp_map" type="data" format="link_map" label="linkage map file" />
       -->
       <!-- Have to add this format to the list of expected types -->
-      <param name="inp_ped" type="data" format="link_ped" label="linkage pedigree file" />
-      <param name="inp_dat" type="data" format="link_dat" label="linkage data file" />
+      <param name="inp_ped" type="data" format="link_ped" label="pedigree" />
+      <param name="inp_dat" type="data" format="link_dat" label="marker data" />
       <param name="analysis_type" type="select" multiple="true" label="from">
 	<option value="MODEL mpt par het" >Linkage Analysis</option>
 	<option value="HAPLOTYPES">Haplotype Analysis</option>
@@ -16,9 +16,9 @@
     </inputs>
 
     <outputs>
-     <data format="ihaplo" type="data" label="Allegro Haplotypes File" />
-     <data format="fparam_mpt" type="data" label="Allegro MPT Linkage File" />
-     <data format="founder" type="data" label="Allegro Descent File" />
+     <data name="haplotypes" format="ihaplo" type="data" label="Allegro Haplotypes File" />
+     <data name="linkage data" format="fparam_mpt" type="data" label="Allegro MPT Linkage File" />
+     <data name="descent data" format="founder" type="data" label="Allegro Descent File" />
     </outputs>
     <!-- TEST -->
 
