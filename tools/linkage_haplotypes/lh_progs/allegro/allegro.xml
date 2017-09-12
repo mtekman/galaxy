@@ -7,7 +7,7 @@
 	   <param name="inp_map" type="data" format="link_map" label="linkage map file" />
       -->
       <!-- Have to add this format to the list of expected types -->
-      <param name="inp_ped" type="data" format="allegro_ped" label="pedigree" />
+      <param name="inp_ped" type="data" format="allegro_ped" label="pedigree" multiple="false" />
       <param name="inp_dat" type="data" format="allegro_recomb" label="marker data" />
       <param name="analysis_type" type="select" multiple="true" label="from" display="checkboxes" >
 	<option value="MODEL mpt par het" >Linkage Analysis</option>
