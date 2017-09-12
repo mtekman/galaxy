@@ -1,24 +1,24 @@
 
 <tool id="allegro_1" name="Allegro2" version="0.1.0" >
     <description>Computes linkage and estimates haplotypes for a given input map set, pedigree file, and data file</description>
-    <command>allegro.sh $inp_ped $inp_dat $analysis_type</command>
+    <command>./allegro.sh $inp_ped $inp_dat $analysis_type</command>
     <inputs>
       <!-- Not needed yet
 	   <param name="inp_map" type="data" format="link_map" label="linkage map file" />
       -->
       <!-- Have to add this format to the list of expected types -->
-      <param name="inp_ped" type="data" format="link_ped" label="pedigree" />
-      <param name="inp_dat" type="data" format="link_dat" label="marker data" />
-      <param name="analysis_type" type="select" multiple="true" label="from">
+      <param name="inp_ped" type="data" format="allegro_ped" label="pedigree" />
+      <param name="inp_dat" type="data" format="allegro_recomb" label="marker data" />
+      <param name="analysis_type" type="select" multiple="true" label="from" display="checkboxes" >
 	<option value="MODEL mpt par het" >Linkage Analysis</option>
 	<option value="HAPLOTYPES">Haplotype Analysis</option>
       </param>
     </inputs>
 
     <outputs>
-     <data name="haplotypes" format="ihaplo" type="data" label="Allegro Haplotypes File" />
-     <data name="linkage data" format="fparam_mpt" type="data" label="Allegro MPT Linkage File" />
-     <data name="descent data" format="founder" type="data" label="Allegro Descent File" />
+     <data name="haplotypes"   format="allegro_haplo"   label="Allegro Haplotypes File"  />
+     <data name="linkage data" format="allegro_linkage" label="Allegro MPT Linkage File" />
+     <data name="descent data" format="allegro_descent" label="Allegro Descent File"     />
     </outputs>
     <!-- TEST -->
 
@@ -26,10 +26,10 @@
       <test>
 	<param name="inp_ped" value="pedin.22" />
 	<param name="inp_dat" value="datain.22" />
-	<param name="analysis_type" type="select" multiple="true">
-	  <option value="MODEL mpt par het" selected="true">Linkage Analysis</option>
-	  <option value="HAPLOTYPES" selected="true">Haplotype Analysis</option>
-	  </param>
+	<param name="analysis_type" value="MODEL mpt par het\nHAPLOTYPES"  />
+	<output name="haplotypes" ftype="allegro_haplo" />
+	<output name="linkage data" ftype="allegro_linkage" />
+	<output name="descent data" ftype="alegro_descent" />
       </test>
     </tests>
 
