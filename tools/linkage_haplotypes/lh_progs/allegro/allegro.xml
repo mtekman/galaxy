@@ -6,7 +6,7 @@
     <configfiles>
       <configfile name="allegro_conf" >
 	PREFILE "${inp_ped}"
-	DATFILE "${ino_dat}"
+	DATFILE "${inp_dat}"
 
 	"${analysis_type}"
 	MAXMEMORY 1200

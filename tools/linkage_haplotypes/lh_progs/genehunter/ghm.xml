@@ -1,24 +1,87 @@
 
 <tool id="ghm_1" name="GeneHunter" version="0.1.0" >
     <description>Linkage and Haplotypes analysis</description>
-    <command>./ghm.sh $inp_ped $inp_dat $analysis_type</command>
+    <command>$__tool_directory__/ghm < $setup_file </command>
+
+    <configfiles>
+      <configfile name="setup_file" >
+	photo gh.out
+	load markers "${inp_dat}"
+
+	# if ${inp_map}:
+           read map "${inp_map}"
+	# end if
+
+	use
+	ps off
+	
+	increment step "${extra_step}"
+	max bits "${extra_maxbits}"
+
+	count recs "${extra_countrecs}"
+	discard "${extra_discard}"
+	off "${extra_off}"
+
+	scan "${inp_ped}"
+
+	total "${extra_stathet}" "${extra_statalpha}" 
+	modcalc "${extra_modcalc}"  # global/single/off, use MOD-score analysis and how to store IVS
+
+	# TODO: Group extra commands into those that do linkage, haplotypes, nd MODscore.
+
+	alg "${extra_alg}" # on/off, evaluate MOD score faster
+	algebra "${extra_alg_mem} # on/off, use more memory
+
+	maximization "${extra_mod_max}" # standard/dense/grid/small/user
+
+	model "${extra_mod_model}" # (disease freq) (penetrances)
+
+	include untyped "${extra_untyped}"  # on/off, use untyped individuals
+
+	positions "${extra_mod_positions}" # (lowest) (highest) -- page 17 of 52
+	
+      </configfile>
+    </configfiles>
+
     <inputs>
-      <!-- Not needed yet
-	   <param name="inp_map" type="data" format="link_map" label="linkage map file" />
-      -->
       <!-- Have to add this format to the list of expected types -->
       <param name="inp_ped" type="data" format="linkage_pedin"  label="Pedigree" />
       <param name="inp_dat" type="data" format="linkage_recomb" label="Recombination Freqs." />
+      <param name="inp_map" type="data" format="linkage_map"    label="Marker Positions" optional="true" />
+      
       <param name="analysis_type" type="select" label="from">
-	<option value="haplo on" >Linkage and Haplotypes</option>
-	<option value="haplo off">Linkage only</option>
+	<option value="haplo" >Haplotypes</option>
+	<option value="link">Linkage</option>
+	<option value="mod">MOD-score</option>
       </param>
+
+      <conditional name="advanced_options" >
+	<param name="extra_options" type="select" label="Advanced Options" >
+	  <option value="default" selected="true" >Use Defaults</option>
+	  <option value="extra" >Expand Advanced Options</option>
+	</param>
+
+	<when value="extra">
+	  <param name="extra_single"  type="boolean" value="false" label="Use a single-point analysis" />
+	  <param name="extra_step"      type="integer" value="2"  label="No. of calculations between adjacent markers" />
+	  <param name="extra_maxbits"   type="integer" value="19"  label="Maximum number of pedigree-bits to use" />
+	  <param name="extra_countrecs" type="boolean" value="false" label="Show recombinations in output" />
+	  <param name="extra_discard"   type="boolean" value="false" label="Remove unaffected individuals without informative parents" />
+	  <param name="extra_off" type="float"   value="1"     label="Max Interval (cM) between calculations" />
+	  <param name="nplexactp"     type="boolean" value="false" label="Use exact P-values" />
+	</when>
+	<when value="default">
+	</when>
+      </conditional>
+
+
+      
     </inputs>
 
     <outputs>
-     <data name="Haplotypes"   format="ghm_haplo"    type="data" label="GeneHunter Haplotypes File"  />
-     <data name="Linkage" format="ghm_linkage"  type="data" label="GeneHunter MPT Linkage File" />
-     <data name="Descent" format="ghm_vectors"  type="data" label="GeneHunter Descent File"     />
+     <data name="Haplotypes" format="ghm_haplo"   type="data" label="GeneHunter Haplotypes File"  />
+     <data name="Linkage"    format="ghm_linkage" type="data" label="GeneHunter MPT Linkage File" />
+     <data name="Descent"    format="ghm_vectors" type="data" label="GeneHunter Descent File"     />
     </outputs>
     <!-- TEST -->
 
