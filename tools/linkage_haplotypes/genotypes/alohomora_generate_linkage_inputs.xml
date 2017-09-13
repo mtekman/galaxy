@@ -4,7 +4,8 @@
     <command interpreter="perl">./alohomora.pl $input_perl</command>
 
    <configfiles>
-      <configfile name="input_perl">
+     <configfile name="input_perl">
+       
 	use Switch;
 
 	# Read in files
@@ -56,12 +57,37 @@
       <param name="inp_ped" type="data" format="ped" label="Pedigree" />
       <param name="inp_map" type="data" format="alohomora_map" label="Marker Map" />
       <param name="inp_maf" type="data" format="alohomora_maf" optional="true" label="(optional) MAF file?" />
+      <param name="inp_chr" type="select" label="Chromosome" >
+	<option value="c01" >c01</option>
+	<option value="c02" >c02</option>
+	<option value="c03" >c03</option>
+	<option value="c04" >c04</option>
+	<option value="c05" >c05</option>
+	<option value="c06" >c06</option>
+	<option value="c07" >c07</option>
+	<option value="c08" >c08</option>
+	<option value="c09" >c09</option>
+	<option value="c10" >c10</option>
+	<option value="c11" >c11</option>
+	<option value="c12" >c12</option>
+	<option value="c13" >c13</option>
+	<option value="c14" >c14</option>
+	<option value="c15" >c15</option>
+	<option value="c16" >c16</option>
+	<option value="c17" >c17</option>
+	<option value="c18" >c18</option>
+	<option value="c19" >c19</option>
+	<option value="c20" >c20</option>
+	<option value="c21" >c21</option>
+	<option value="c22" >c22</option>
+	<option value="cXY" >cXY</option>
+      </param>
     </inputs>
 
     <outputs>
-     <data name="Pedigree"              format="linkage_pedin"  label="Linkage Pedigree"     />
-     <data name="Recombination Freqs."  format="linkage_recomb" label="Recombination Freqs." />
-     <data name="Map"                   format="linkage_map"    label="Linkage Map"          />
+      <data name="Pedigree"              format="linkage_pedin"  label="Linkage Pedigree"     />
+      <data name="Recombination Freqs."  format="linkage_recomb" label="Recombination Freqs." />
+      <data name="Map"                   format="linkage_map"    label="Linkage Map"          />
     </outputs>
 
     <tests>
