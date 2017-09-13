@@ -1,11 +1,48 @@
 
 <tool id="alohomora_1" name="Alohomora" version="0.1.0" >
     <description>Convert genotypes and pedigrees into linkage input</description>
-    <command>./alohomora.pl $do_something</command>
+    <command interpreter="perl">./alohomora.pl $input_perl</command>
+
+   <configfiles>
+      <configfile name="input_perl">
+	use Switch;
+
+	# Read in files
+	$infile="${inp_gt}";
+	$pedfilepro="${inp_ped}";
+
+	# Override Illumina map
+	$chip="Illumina";
+	$genmap="Other";
+	$other_map_illumi="${inp_map}";
+
+	# Override Caucasian MAF on input
+	if "${inp_maf}" == "":
+	    $allfreq="Equal"
+	else:
+	    $allfreq="Caucasian";
+	    $freq_cauc_illumi="${inp_maf}";
+
+	$del_errors=0;
+
+	$skip_notinf=0;
+	$del_errors=1;
+	$del_unlikely=1;
+
+	# The likelihood of a user injecting perl code via HTML input is so low...
+	# &#38;"${inp_prog}"
+	#
+	# But better to be safe:
+	switch ("${inp_prog}") {
+	   case "Allegro"    { &#38;Allegro;   }
+	   case "Genehunter" { &#38;Genehunter;}
+	   case "Merlin"     { &#38;Merlin;    }
+	   case "Mega2"      { &#38;Mega2;     }
+	}
+      </configfile>
+    </configfiles>
+    
     <inputs>
-      <!-- Not needed yet
-	   <param name="inp_map" type="data" format="link_map" label="linkage map file" />
-      -->
       <!-- Have to add this format to the list of expected types -->
       <param name="inp_prog" type="select" label="Linkage Program" >
 	<option value="Allegro"   >Allegro</option>
@@ -14,11 +51,11 @@
 	<option value="Mega2"     >Simwalk</option>
 	<option value="Allegro"   >SwiftLink</option><!--Yes, the value is accurate...-->
       </param>
-		
+	
       <param name="inp_gt"  type="data" format="alohomora_gts" label="Genotypes" />
       <param name="inp_ped" type="data" format="ped" label="Pedigree" />
       <param name="inp_map" type="data" format="alohomora_map" label="Marker Map" />
-
+      <param name="inp_maf" type="data" format="alohomora_maf" optional="true" label="(optional) MAF file?" />
     </inputs>
 
     <outputs>
