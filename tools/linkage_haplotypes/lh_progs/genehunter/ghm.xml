@@ -1,45 +1,163 @@
 
 <tool id="ghm_1" name="GeneHunter" version="0.1.0" >
     <description>Linkage and Haplotypes analysis</description>
-    <command>$__tool_directory__/ghm < $setup_file </command>
+    <command>$__tool_directory__/ghm &#60; $setup_file </command>
 
+    
     <configfiles>
       <configfile name="setup_file" >
 	photo gh.out
 	load markers "${inp_dat}"
 
-	# if ${inp_map}:
+	#if ${inp_map}:
            read map "${inp_map}"
-	# end if
+	#end if
 
 	use
 	ps off
 	
-	increment step "${extra_step}"
-	max bits "${extra_maxbits}"
+	scan ${inp_ped}
 
-	count recs "${extra_countrecs}"
-	discard "${extra_discard}"
-	off "${extra_off}"
-
-	scan "${inp_ped}"
-
-	total "${extra_stathet}" "${extra_statalpha}" 
-	modcalc "${extra_modcalc}"  # global/single/off, use MOD-score analysis and how to store IVS
-
-	# TODO: Group extra commands into those that do linkage, haplotypes, nd MODscore.
-
-	alg "${extra_alg}" # on/off, evaluate MOD score faster
-	algebra "${extra_alg_mem} # on/off, use more memory
-
-	maximization "${extra_mod_max}" # standard/dense/grid/small/user
-
-	model "${extra_mod_model}" # (disease freq) (penetrances)
-
-	include untyped "${extra_untyped}"  # on/off, use untyped individuals
-
-	positions "${extra_mod_positions}" # (lowest) (highest) -- page 17 of 52
+	## Initiate mod score lod calculation and store IVs, off by default
+	modcalc ${extra_modcalc}  ## global / single / off
 	
+	#for $i, $anal in enumerate( ${analysis} ):
+	    #if $anal.value == "haplotype":
+              haplotype ${extra_haplotype}               ## on / off, generate Haplotypes
+	      haplotype method ${extra_haplotype_method} ## [MaxProb] / Viterbi
+	    #end if
+            #if $anal.value == "linkage":
+              analysis ${extra_mod_analysis} ## NPL / LOD / BOTH, type of linkage analysis
+              single point ${extra_singlepoint} ## on / off, dont use multi-point parametric
+	    #end if
+	#end for
+
+	## Show total scores from a scan of multiple peds
+	##  - 'het' [alpha], if not given then alpha varies
+	##  - 'start' 
+	#if ${extra_stat}:
+           total ${extra_stathet} ${extra_statalpha}
+	#end if
+	
+	## Algebraic calculation for P-values, default on
+	alg #if ${extra_alg}# on#else off#end if
+	## Use more memory for algebraic calculations
+	algebra ${extra_alg_mem}# on#else off#end if
+
+	#if ${extra_mod_model}
+            model "${extra_mod_modeldisfreq}" "${extra_mod_modelpenet}"
+        #end if
+
+	## Range of markers positions instead of all range
+	#if ${extra_mod_positions}:
+	    positions ${extra_mod_positions_lowest} ${extra_mod_positions_highest}
+	#end if
+
+	## Untyped
+	#if ${use_haplotypes} or ${extra_includeuntyped}:
+           include untyped on
+	#else:
+	   include untyped off
+        #end if
+
+	## Eliminate uninformative individuals
+	discard #if ${extra_discard}## on#else off#end if
+
+	## Use untyped founders
+	ufo #if ${extra_ufo}## on#else off#endif
+
+	## Restrict penetrances so that hom wildtype LEQ het LEQ hom mutant
+	pr #if ${extra_mod_penetrancerestrict}## on#else off#end if
+
+	## Restrict disease allele frequency to be not higher than the highest allfreq  (default 0.5)
+	ar #if ${extra_mod_allfreq}## on#else off#endif
+
+	## Set upper disease allele freq for MOD, default 0.5 ( 0 -> 1 )
+	ha ${extra_mod_highallele}
+
+	## Number of parameters varied together in MOD, default 2 ( 1 -> 5 )
+	dimensions "${extra_mod_dimensions}"
+
+        ## Normalize Allele Frequencies, default off
+	naf #if ${extra_nmaf}## on#else ## off#end if
+
+
+	#if ${extra_mod_calc}.value == "single":
+	    ## Number of trait models saved in MOD score. Only works if algebraic calc is off, and in single modcalc
+	    #if !${extra_alg}:
+                saved models ${extra_mod_savedmodels}
+	    #end if
+		
+	    ## Long output for modcalc single    
+	    #if ${extra_mod_modcalcsingle_long}:
+                lm on
+	    #end if
+
+            ## Calculate P-values only at the best position, off by default
+ 	    #if ${extra_mod_bed}:
+                bep on
+            #end if
+	#elif ${extra_mod_analysis}.value != "LOD":
+            score ${extra_npl_score} ## pairs / all / hom
+        #end if
+
+
+	## Number of replicates in P-score evaluation, default 0
+	#if ${extra_calcpval} and ${extra_cpv_nor} > 0:
+           nor ${extra_cpv_nor}
+	#end if 
+
+	## Number of sequential simulations in P-score evaluation, default 0
+	seq ${extra_seq}
+
+	## Store replicates during P-score evaluation, default off
+	#if ${extra_storereplicates}.value != "off":
+            str "${extra_storereplicates}" ## pre / both,
+	#end if
+
+	## Simulate untyped individuals, required for haplotypes
+	#if ${use_haplotypes} or ${extra_sun}:
+	   sun on
+	#else:
+	   sun off
+	#end if
+
+	## Set random seed for P-score evaluation, default -1
+	srs ${extra_srs}
+
+	## Display distribution of replicates, default off
+	sdi #if ${extra_sdi}# on#else off#end if
+
+	#### General
+	## Count the number of recombintions, default off
+	count recs #if ${extra_countrec}# on#else off#end if
+
+	## Do not skip fully homozygous markers when generating haplotypes, default off 
+	fin #if ${extra_cpv_fin}# on #else off#end if
+
+	## Print scores to screen, default on
+	display scores #if ${extra_displayscores}# on#else off#end if
+		
+	## Margin before and after marker range to compute scores, default 0 cM
+	off end ${extra_offend}
+
+	## Distance between adjacent scores, either in cM 'distance' irrespective of map, or equal 'steps'. Default steps 5
+	increment ${extra_increment_type} ${extra_increment_sizepavu}
+
+	## Units, default haldane
+	map function #if ${extra_mapfunc}# haldane#else kosambi#end if
+	## Units in scan output, default cM
+	units #if ${extra_scan_units}# cM#else rec-frac#end if
+
+	## Max pedigree size  calculated by 2N - F, default 19, trim individuals beyond this
+	max bits ${extra_maxbits}
+	## Split pedigree larger than max ped size, default off
+	skip large #if ${extra_maxbits_skiplarge}# on#else off#end if
+	## Stores IBD matrics for linkage, default off
+	cs #if ${extra_computesharing}# on#else off#end if
+
+	## TODO:
+	##    Qualitative / Quantitative trait mapping of sibs, Variance component analysis, TDT	
       </configfile>
     </configfiles>
 
@@ -48,12 +166,13 @@
       <param name="inp_ped" type="data" format="linkage_pedin"  label="Pedigree" />
       <param name="inp_dat" type="data" format="linkage_recomb" label="Recombination Freqs." />
       <param name="inp_map" type="data" format="linkage_map"    label="Marker Positions" optional="true" />
-      
-      <param name="analysis_type" type="select" label="from">
-	<option value="haplo" >Haplotypes</option>
-	<option value="link">Linkage</option>
-	<option value="mod">MOD-score</option>
-      </param>
+
+      <conditional name="analysis_specific" >
+	<param name="analysis_type" type="select" label="from">
+	  <option value="haplo" >Haplotypes</option>
+	  <option value="link">Linkage</option>
+	</param>
+      </conditional>
 
       <conditional name="advanced_options" >
 	<param name="extra_options" type="select" label="Advanced Options" >
