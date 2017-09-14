@@ -27,14 +27,17 @@
 	      haplotype method ${extra_haplotype_method} ## [MaxProb] / Viterbi
 	    #end if
             #if $anal.value == "linkage":
-              analysis ${extra_mod_analysis} ## NPL / LOD / BOTH, type of linkage analysis
-              single point ${extra_singlepoint} ## on / off, dont use multi-point parametric
+                analysis ${extra_mod_analysis} ## NPL / LOD / BOTH, type of linkage analysis
+	    	#if ${extra_mod_analysis}.value != "LOD":
+                   score ${extra_npl_score} ## pairs / all / hom
+                #end if
+                single point ${extra_singlepoint} ## on / off, dont use multi-point parametric
 	    #end if
 	#end for
 
 	## Show total scores from a scan of multiple peds
 	##  - 'het' [alpha], if not given then alpha varies
-	##  - 'start' 
+	##  - 'stat' 
 	#if ${extra_stat}:
            total ${extra_stathet} ${extra_statalpha}
 	#end if
@@ -44,8 +47,9 @@
 	## Use more memory for algebraic calculations
 	algebra ${extra_alg_mem}# on#else off#end if
 
+	## Add custom trait models
 	#if ${extra_mod_model}
-            model "${extra_mod_modeldisfreq}" "${extra_mod_modelpenet}"
+            model ${extra_mod_modeldisfreq} ${extra_mod_modelpenet}
         #end if
 
 	## Range of markers positions instead of all range
@@ -53,20 +57,20 @@
 	    positions ${extra_mod_positions_lowest} ${extra_mod_positions_highest}
 	#end if
 
-	## Untyped
+	## Untyped, default on
 	#if ${use_haplotypes} or ${extra_includeuntyped}:
            include untyped on
 	#else:
 	   include untyped off
         #end if
 
-	## Eliminate uninformative individuals
+	## Eliminate uninformative individuals, default off
 	discard #if ${extra_discard}## on#else off#end if
 
-	## Use untyped founders
+	## Use untyped founders, default off
 	ufo #if ${extra_ufo}## on#else off#endif
 
-	## Restrict penetrances so that hom wildtype LEQ het LEQ hom mutant
+	## Restrict penetrances so that hom wildtype LEQ het LEQ hom mutant, on default
 	pr #if ${extra_mod_penetrancerestrict}## on#else off#end if
 
 	## Restrict disease allele frequency to be not higher than the highest allfreq  (default 0.5)
@@ -82,29 +86,37 @@
 	naf #if ${extra_nmaf}## on#else ## off#end if
 
 
-	#if ${extra_mod_calc}.value == "single":
+	## off by default
+	#if ${extra_modcalc}.value == "single":
 	    ## Number of trait models saved in MOD score. Only works if algebraic calc is off, and in single modcalc
 	    #if !${extra_alg}:
-                saved models ${extra_mod_savedmodels}
-	    #end if
+	        #if ${extra_mod_savedmodels}!=-1:
+                   saved models ${extra_mod_savedmodels}
+                #end if
+            #end if
 		
 	    ## Long output for modcalc single    
-	    #if ${extra_mod_modcalcsingle_long}:
+	    #if ${extra_mod_longmod}:
                 lm on
 	    #end if
 
             ## Calculate P-values only at the best position, off by default
- 	    #if ${extra_mod_bed}:
+ 	    #if ${extra_mod_bep}:
                 bep on
             #end if
-	#elif ${extra_mod_analysis}.value != "LOD":
-            score ${extra_npl_score} ## pairs / all / hom
-        #end if
+	#end if
 
 
-	## Number of replicates in P-score evaluation, default 0
-	#if ${extra_calcpval} and ${extra_cpv_nor} > 0:
-           nor ${extra_cpv_nor}
+	## Calculate p-values for MOD/LOD scores
+	#if ${extra_calcpval}
+           cpv ${extra_calcpval_file}
+           ## Number of replicates in P-score evaluation, default 0
+	   #if ${extra_cpv_nor} > 0:
+               nor ${extra_cpv_nor}
+	   #end if
+	#endif
+	
+	#if ${extra_calcpval} and 
 	#end if 
 
 	## Number of sequential simulations in P-score evaluation, default 0
@@ -172,6 +184,28 @@
 	  <option value="haplo" >Haplotypes</option>
 	  <option value="link">Linkage</option>
 	</param>
+
+	<when value="haplo" >
+	  <param name="extra_haplotype_method" type="select" >
+	    <option value="MaxProb"  />
+	    <option value="Viterbi" selected="true" />
+	  </param>
+
+	  <param name="extra_npl_score" type="select" >
+	    <option value="all"   selected="true" />
+	    <option value="pairs"  />
+	    <option value="hom"    />
+	  </param>
+	</when>
+
+	<when value="link" >
+	  <param name="extra_mod_analysis" type="select" >
+	    <option value="BOTH" selected="true" >Both</option>
+	    <option value="NPL"  >Non-paremetric Linkage</option>
+	    <option value="LOD"  >Logarithm-of-the-Odds</option>
+	  </param>
+	  <param name="extra_singlepoint" type="boolean" value="false" />
+	</when>
       </conditional>
 
       <conditional name="advanced_options" >
@@ -180,7 +214,72 @@
 	  <option value="extra" >Expand Advanced Options</option>
 	</param>
 
-	<when value="extra">
+	<when value="extra" >
+	  <param name="extra_modcalc" type="select" >
+	    <option value="global"  />
+	    <option value="single"  />
+	    <option value="off" selected="true" />
+	  </param>
+
+	  <conditional name="advanced_options_stat" >
+	    <param name="extra_stat" type="boolean" value="false" />
+	    <when value="false" >
+	    </when>
+	    <when value="true" >
+	      <conditional name="advanced_options_stat_het" >
+		<param name="extra_stathet" type="select" >
+		  <option value="het"  />
+		  <option value="stat" />
+		</param>
+		<when value="het" >
+		  <param name="extra_statalpha"  value="" type="integer" />
+		</when>
+		<when value="stat" ></when>
+	      </conditional>
+	    </when>
+	  </conditional>
+
+
+	  <conditional name="advanced_options_alg" >
+	    <param name="extra_alg" value="true" type="boolean" />
+	    <when value="true" >
+	      <param name="extra_alg_mem" value="true" type="boolean" />
+	    </when>
+	    <when value="false" />
+	  </conditional>
+
+	  <conditional name="advanced_options_model" >
+	    <param name="extra_mod_model" type="boolean" value="true" />
+	    <when value="true" >
+	      <param name="extra_mod_modeldisfreq" type="float" label="disease allele frequency" />
+	      <param name="extra_mod_modelpenet" type="text" label="3 of 4 penetrances" />
+	    </when>
+	    <when value="false" ></when>
+	  </conditional>
+
+	  <param name="extra_mod_savedmodels" type="integer" value="-1" label="Number of models to save" />
+	  <!-- TODO: this depends on modcalc==single, and !alg -->
+
+	  <conditional name="advanced_options_positions" >
+	    <param name="extra_mod_positions" type="boolean" value="false" />
+	    <when value="false" />
+	    <when value="true" >
+	      <param name="extra_mod_positions_lowest" type="float" label="Lowest position (cM)" />
+	      <param name="extra_mod_positions_highest" type="float" label="Highest position (cM)" />
+	    </when>
+	  </conditional>
+
+	  <param name="extra_includeuntyped" type="boolean" value="true" label="Include untyped individuals" />
+	  <param name="extra_discard" type="boolean" value="false" label="Discard uninformative individuals"  />
+	  <param name="extra_ufo" type="boolean" value="false" label="Use untyped founders" />
+	  <param name="extra_mod_penetrancerestrict" type="boolean" value="true" label="Restrict Penetrances" />
+	  <param name="extra_mod_allfreq" type="float" min="0" max="1" value="0.5" label="Restrict disease allele frequency" />
+	  <param name="extra_mod_highallele" type="float" min="0" max="1" value="0.5" label="Set maximum disease allele frequency" />
+	  <param name="extra_mod_dimension" type="integer" min="1" max="5" value="2" label="Number of parameters to vary" />
+	  <param name="extra_nmaf" type="boolean" value="false" label="Normalize Allele Frequencies" />
+	  
+	  <!-- Below this needs to be reconfirmed -->
+	  
 	  <param name="extra_single"  type="boolean" value="false" label="Use a single-point analysis" />
 	  <param name="extra_step"      type="integer" value="2"  label="No. of calculations between adjacent markers" />
 	  <param name="extra_maxbits"   type="integer" value="19"  label="Maximum number of pedigree-bits to use" />
