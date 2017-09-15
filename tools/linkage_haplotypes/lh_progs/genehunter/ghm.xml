@@ -1,6 +1,18 @@
 
 <tool id="ghm_1" name="GeneHunter" version="0.1.0" >
     <description>Linkage and Haplotypes analysis</description>
+        
+    <macros>
+      <xml name="macro_npl_opts" >
+	<param name="extra_npl_score" type="select"
+	       label="Type of NPL scoring">
+	  <option value="all"   selected="true" />
+	  <option value="pairs"  />
+	  <option value="hom"    />
+	</param>
+      </xml>
+    </macros>
+    
     <command>$__tool_directory__/ghm &#60; $setup_file </command>
 
     
@@ -173,40 +185,46 @@
       </configfile>
     </configfiles>
 
+
     <inputs>
       <!-- Have to add this format to the list of expected types -->
       <param name="inp_ped" type="data" format="linkage_pedin"  label="Pedigree" />
       <param name="inp_dat" type="data" format="linkage_recomb" label="Recombination Freqs." />
       <param name="inp_map" type="data" format="linkage_map"    label="Marker Positions" optional="true" />
 
-      <conditional name="analysis_specific" >
-	<param name="analysis_type" type="select" label="from">
-	  <option value="haplo" >Haplotypes</option>
-	  <option value="link">Linkage</option>
-	</param>
+      <section name="section_linkage" title="Linkage" expanded="true" >
+	<param name="extra_singlepoint" type="boolean" value="false"
+	     label="Single-point Analysis"/> 
 
-	<when value="haplo" >
-	  <param name="extra_haplotype_method" type="select" >
-	    <option value="MaxProb"  />
-	    <option value="Viterbi" selected="true" />
-	  </param>
-
-	  <param name="extra_npl_score" type="select" >
-	    <option value="all"   selected="true" />
-	    <option value="pairs"  />
-	    <option value="hom"    />
-	  </param>
-	</when>
-
-	<when value="link" >
-	  <param name="extra_mod_analysis" type="select" >
+	<conditional name="npl_scoring" >
+	
+	  <param name="extra_mod_analysis" type="select"
+		 label="Type of linkage analysis" >
 	    <option value="BOTH" selected="true" >Both</option>
 	    <option value="NPL"  >Non-paremetric Linkage</option>
 	    <option value="LOD"  >Logarithm-of-the-Odds</option>
 	  </param>
-	  <param name="extra_singlepoint" type="boolean" value="false" />
-	</when>
-      </conditional>
+	  <when value="BOTH" ><expand macro="macro_npl_opts" /></when>
+	  <when value="NPL" ><expand macro="macro_npl_opts" /></when>
+	  <when value="LOD" />
+	</conditional>
+      </section>
+ 
+      <section name="section_haplo" title="Haplotypes" expanded="true" >
+	<conditional name="analysis_haplo" >
+	  <param name="extra_haplotype" type="boolean" value="false"
+		 label="Haplotype Analysis" />
+
+	  <when value="true">
+	    <param name="extra_haplotype_method" type="select"
+		   label="Haplotype Reconstruction Algorithm" >
+	      <option value="MaxProb"  />
+	      <option value="Viterbi" selected="true" />
+	    </param>
+	  </when>
+	  <when value="false" />
+	</conditional>
+      </section>
 
       <section name="section_options" expanded="false" title="Advanced Options" >
 
@@ -237,9 +255,8 @@
 		 label="Set Random seed for P-value calculations" />
 
 	</section>
-	<!-- End P-values -->
+	<!-- End of P Values: Works -->
 
-	<!-- Display Opts -->
 	<section name="section_display" expanded="false" title="Display options" >
 	  <param name="extra_sdi" type="boolean" value="false"
 		 label="Display distribution of replicates" />
@@ -258,47 +275,62 @@
 	    <option value="rec-frac" >Recombination Fractions</option>
 	  </param>
 	</section>
-	<!-- End Display Opts -->
+	<!-- End of display: Works -->
 
-	<!-- Range Opts -->
 	<section name="section_range" expanded="false" title="Range options" >
 
-	  <param name="extra_offend" type="float" value="0"
+	  <param name="extra_offend" type="float" value="0.0"
 		 label="Margin before and after marker range to compute scores (cM)" />
 
 	  <conditional name="advanced_options_increment" >
 	    <param name="extra_increment_type" type="select"
-		   label="Increment either the genetic distance across the whole range of markers, or the number of equally-spaced steps between adjacent markers" >
+	  	   label="Increment either the genetic distance across the whole range of markers, or the number of equally-spaced steps between adjacent markers" >
 	      <option value="distance" >Distance</option>
 	      <option value="steps" selected="true" >Steps</option>
 	    </param>
 	    <when value="distance" >
-	      <param name="extra_increment_sizepavu" type="float" min="1"
-		     label="(cM)" />
+	      <param name="extra_increment_sizepavu" type="float" min="1.0" value="1" max="1000"
+	    	     label="centiMorgan interval" />
 	    </when>
 	    <when value="steps" >
-	      <param name="extra_increment_sizepavu" type="integer" min="1" value="5" />
+	      <param name="extra_increment_sizepavu" type="integer" min="1" value="5" max="500"
+	  	     label="Number of steps between markers" />
 	    </when>
 	  </conditional>
 
 	  <param name="extra_maxbits" type="integer" min="3" value="19" max="30"
 		 label="Max bit-size of the pedigree, computed via '2N-F', for F founders and N non-founders" />
 	  <param name="extra_maxbits_skiplarge" type="boolean" value="false"
-		 label="Split pedigrees if larger than the max pedigree size" />	  
+		 label="Split pedigrees if larger than the max pedigree size" />
 	</section>
-	
+
+	<conditional name="advanced_options_positions" >
+	  <param name="extra_mod_positions" type="boolean" value="false" />
+	  <when value="false" />
+	  <when value="true" >
+	    <param name="extra_mod_positions_lowest" type="float" value="0" min="0" max="1000"
+		   label="Lowest position (cM)" />
+	    <param name="extra_mod_positions_highest" type="float" value="1"
+		   min="0" max="1000"
+		   label="Highest position (cM)" />
+	    <!-- TODO: Vary this so that lowest < higher --> 
+	  </when>
+	</conditional>
+
+	<!-- End of range:Works -->
 
 	<!-- Unsectioned params here -->
-	<param name="extra_cpv_fin" type="boolean" value="false"
+<!--	<param name="extra_cpv_fin" type="boolean" value="false"
 	       label="Process fully homozygous (uninformative) loci too" />
 
 	<param name="extra_computesharing" type="boolean" value="false"
 	       label="Store IBD matrices" />
-	
+
 
 	
 	<conditional name="advanced_options_modcalc" >
-	  <param name="extra_modcalc" type="select" >
+	  <param name="extra_modcalc" type="select"
+		 label="Inheritance Vector storage for LOD calculations" >
 	    <option value="global"  />
 	    <option value="single"  />
 	    <option value="off" selected="true" />
@@ -314,7 +346,8 @@
 	</conditional>
 
 	<conditional name="advanced_options_stat" >
-	  <param name="extra_stat" type="boolean" value="false" />
+	  <param name="extra_stat" type="boolean" value="false"
+		 label="Show total scores from a scan of multiple peds"/>
 	  <when value="true" >
 	    <conditional name="advanced_options_stat_het" >
 	      <param name="extra_stathet" type="select" >
@@ -330,7 +363,8 @@
 	  <when value="false" />
 	</conditional>
 
-
+-->
+<!--
 	<conditional name="advanced_options_alg" >
 	  <param name="extra_alg" value="true" type="boolean" />
 	  <when value="true" >
@@ -339,7 +373,6 @@
 	  <when value="false" >
 	    <param name="extra_mod_savedmodels" type="integer" value="-1"
 		   label="Number of models to save" />
-	    <!-- TODO: this depends on extra_modcalc==single, and !extra_alg -->	      
 	  </when>
 	</conditional>
 
@@ -350,15 +383,6 @@
 	    <param name="extra_mod_modelpenet" type="text" label="3 of 4 penetrances" />
 	  </when>
 	  <when value="false" />
-	</conditional>
-
-	<conditional name="advanced_options_positions" >
-	  <param name="extra_mod_positions" type="boolean" value="false" />
-	  <when value="false" />
-	  <when value="true" >
-	    <param name="extra_mod_positions_lowest" type="float" label="Lowest position (cM)" />
-	    <param name="extra_mod_positions_highest" type="float" label="Highest position (cM)" />
-	  </when>
 	</conditional>
 
 	<param name="extra_includeuntyped" type="boolean" value="true"
@@ -384,17 +408,14 @@
 
 	<param name="extra_nmaf" type="boolean" value="false"
 	       label="Normalize Allele Frequencies" />
-	
+-->
       </section>
-
-
-      
     </inputs>
 
     <outputs>
-     <data name="Haplotypes" format="ghm_haplo"   label="GeneHunter Haplotypes File"  />
-     <data name="Linkage"    format="ghm_linkage" label="GeneHunter MPT Linkage File" />
-     <data name="Descent"    format="ghm_vectors" label="GeneHunter Descent File"     />
+     <data name="Haplotypes" format="ghm_haplo"    label="GeneHunter Haplotypes File"  />
+     <data name="Linkage"    format="ghm_linkage"  label="GeneHunter MPT Linkage File" />
+     <data name="Descent"    format="ghm_vectors"  label="GeneHunter Descent File"     />
     </outputs>
     <!-- TEST -->
 
