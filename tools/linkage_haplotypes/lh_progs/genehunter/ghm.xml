@@ -187,12 +187,27 @@
 
 
     <inputs>
-      <!-- Have to add this format to the list of expected types -->
       <param name="inp_ped" type="data" format="linkage_pedin"  label="Pedigree" />
       <param name="inp_dat" type="data" format="linkage_recomb" label="Recombination Freqs." />
       <param name="inp_map" type="data" format="linkage_map"    label="Marker Positions" optional="true" />
 
-      <section name="section_linkage" title="Linkage" expanded="true" >
+      <section name="section_haplo" title="Haplotypes" expanded="true" >
+	<conditional name="analysis_haplo" >
+	  <param name="extra_haplotype" type="boolean" value="false"
+		 label="Haplotype Analysis" />
+
+	  <when value="true">
+	    <param name="extra_haplotype_method" type="select"
+		   label="Haplotype Reconstruction Algorithm" >
+	      <option value="MaxProb"  />
+	      <option value="Viterbi" selected="true" />
+	    </param>
+	  </when>
+	  <when value="false" />
+	</conditional>
+      </section>
+      
+      <section name="section_linkage" title="Linkage" expanded="false" >
 	<param name="extra_singlepoint" type="boolean" value="false"
 	     label="Single-point Analysis"/> 
 
@@ -210,28 +225,38 @@
 	</conditional>
       </section>
  
-      <section name="section_haplo" title="Haplotypes" expanded="true" >
-	<conditional name="analysis_haplo" >
-	  <param name="extra_haplotype" type="boolean" value="false"
-		 label="Haplotype Analysis" />
-
-	  <when value="true">
-	    <param name="extra_haplotype_method" type="select"
-		   label="Haplotype Reconstruction Algorithm" >
-	      <option value="MaxProb"  />
-	      <option value="Viterbi" selected="true" />
-	    </param>
-	  </when>
-	  <when value="false" />
-	</conditional>
-      </section>
-
       <section name="section_options" expanded="false" title="Advanced Options" >
 
 	<!-- P-values -->
 	<section name="section_pvalues" expanded="false"
-		 title="P-value options" >
+		 title="P-value Options" >
 
+	  <conditional name="advanced_options_alg" >
+	    <param name="extra_alg" value="true" type="boolean"
+		   label="Use Algebraic calculations for P-Values"/>
+
+	    <when value="true" >
+	      <param name="extra_alg_mem" value="true" type="boolean"
+		     label="Remove large memory restrictions for algebraic calculations" />
+	    </when>
+	    <when value="false" >
+	      <param name="extra_mod_savedmodels" type="integer" value="-1"
+		     label="Number of models to save" />
+	    </when>
+	  </conditional>
+	
+	  <conditional name="advanced_options_model" >
+	    <param name="extra_mod_model" type="boolean" value="false"
+		   label="Use custom trait models" />
+	    <when value="true" >
+	      <param name="extra_mod_modeldisfreq" type="float" value="" min="0" max="1"
+		     label="Disease allele frequency" />
+	      <param name="extra_mod_modelpenet" type="text" value=""
+		     label="3 or 4 penetrances" />
+	    </when>
+	    <when value="false" />
+	  </conditional>
+	  
 	  <conditional name="advanced_options_calcpval" >
 	    <param name="extra_calcpval" type="boolean" value="false"
 		   label="Calculate P-values for MOD/LOD scores" />
@@ -245,19 +270,59 @@
 	    <when value="false" />
 	  </conditional>
 
+	  <conditional name="advanced_options_modcalc" >
+	    <param name="extra_modcalc" type="select"
+		   label="Inheritance Vector storage for LOD and P-value calculations" >
+	      <option value="global"  />
+	      <option value="single"  />
+	      <option value="off" selected="true" />
+	    </param>
+	    <when value="single" >
+	      <param name="extra_mod_longmod" type="boolean" value="false"
+		     label="Produce long output for scores" />
+	      <param name="extra_mod_bep" type="boolean" value="false"
+		     label="Calculate P-values only at the best LOD positions" />
+	    </when>
+	    <when value="global" />
+	    <when value="off" />
+	  </conditional>
+	  
 	  <param name="extra_seq" type="integer" value="0" min="0"
 		 label="Number of sequential simulations in P-value calculations" />
 	  <param name="extra_storereplicates" type="boolean" value="false"
 		 label="Store replicates during P-value calculations" />
-	  <param name="extra_sun" type="boolean" value="false"
-		 label="Simulate untyped individuals" />
 	  <param name="extra_srs" type="integer" value="-1"
 		 label="Set Random seed for P-value calculations" />
-
+	  <param name="extra_computesharing" type="boolean" value="false"
+		 label="Store IBD matrices" />
+	  <param name="extra_mod_dimension" type="integer" min="1" max="5" value="2"
+		 label="Number of parameters to vary in LOD calculations" />
 	</section>
 	<!-- End of P Values: Works -->
 
+	<!-- Display Options -->
 	<section name="section_display" expanded="false" title="Display options" >
+	  
+	  <conditional name="advanced_options_stat" >
+	    <param name="extra_stat" type="boolean" value="false"
+		   label="Show total scores from a scan of multiple peds"/>
+	    <when value="true" >
+	      <conditional name="advanced_options_stat_het" >
+		<param name="extra_stathet" type="select"
+		       label="Options" >
+		  <option value="het"  >Calculate LOD scores under heterogeneity too</option>
+		  <option value="stat" >Show general LOD statistics</option>
+		</param>
+		<when value="het" >
+		  <param name="extra_statalpha" value="" type="float" min="0" max="1"
+			 label="Assuming a fixed alpha (leave blank for dynamic alpha):"/>
+		</when>
+		<when value="stat" ></when>
+	      </conditional>
+	    </when>
+	    <when value="false" />
+	  </conditional>
+	  
 	  <param name="extra_sdi" type="boolean" value="false"
 		 label="Display distribution of replicates" />
 	  <param name="extra_countrec" type="boolean" value="false"
@@ -277,7 +342,22 @@
 	</section>
 	<!-- End of display: Works -->
 
+	<!-- Range section -->
 	<section name="section_range" expanded="false" title="Range options" >
+
+	  <conditional name="advanced_options_positions" >
+	    <param name="extra_mod_positions" type="boolean" value="false"
+		   label="Define custom position range" />
+	    <when value="false" />
+	    <when value="true" >
+	      <param name="extra_mod_positions_lowest" type="float" value="0" min="0" max="1000"
+		     label="Lowest position (cM)" />
+	      <param name="extra_mod_positions_highest" type="float" value="1"
+		     min="0" max="1000"
+		     label="Highest position (cM)" />
+	      <!-- TODO: Vary this so that lowest < higher --> 
+	    </when>
+	  </conditional>	  
 
 	  <param name="extra_offend" type="float" value="0.0"
 		 label="Margin before and after marker range to compute scores (cM)" />
@@ -302,114 +382,43 @@
 		 label="Max bit-size of the pedigree, computed via '2N-F', for F founders and N non-founders" />
 	  <param name="extra_maxbits_skiplarge" type="boolean" value="false"
 		 label="Split pedigrees if larger than the max pedigree size" />
+	    
 	</section>
-
-	<conditional name="advanced_options_positions" >
-	  <param name="extra_mod_positions" type="boolean" value="false" />
-	  <when value="false" />
-	  <when value="true" >
-	    <param name="extra_mod_positions_lowest" type="float" value="0" min="0" max="1000"
-		   label="Lowest position (cM)" />
-	    <param name="extra_mod_positions_highest" type="float" value="1"
-		   min="0" max="1000"
-		   label="Highest position (cM)" />
-	    <!-- TODO: Vary this so that lowest < higher --> 
-	  </when>
-	</conditional>
-
 	<!-- End of range:Works -->
 
-	<!-- Unsectioned params here -->
-<!--	<param name="extra_cpv_fin" type="boolean" value="false"
-	       label="Process fully homozygous (uninformative) loci too" />
+	<!-- Frequency section -->
+	<section name="section_allfreq" title="Allele Frequency Options">
+	  <param name="extra_nmaf" type="boolean" value="false"
+		 label="Normalize Allele Frequencies" />
 
-	<param name="extra_computesharing" type="boolean" value="false"
-	       label="Store IBD matrices" />
+	  <param name="extra_mod_allfreq" type="float" min="0" max="1" value="0.5"
+		 label="Restrict disease allele frequency" />
 
+	  <param name="extra_mod_highallele" type="float" min="0" max="1" value="0.5"
+		 label="Set maximum disease allele frequency" />
 
-	
-	<conditional name="advanced_options_modcalc" >
-	  <param name="extra_modcalc" type="select"
-		 label="Inheritance Vector storage for LOD calculations" >
-	    <option value="global"  />
-	    <option value="single"  />
-	    <option value="off" selected="true" />
-	  </param>
-	  <when value="single" >
-	    <param name="extra_mod_longmod" type="boolean" value="false"
-		   label="Produce long output for scores" />
-	    <param name="extra_mod_bep" type="boolean" value="false"
-		   label="Calculate P-values only at the best LOD positions" />
-	  </when>
-	  <when value="global" />
-	  <when value="off" />
-	</conditional>
+	  <param name="extra_mod_penetrancerestrict" type="boolean" value="true"
+		 label="Restrict Penetrances" />
 
-	<conditional name="advanced_options_stat" >
-	  <param name="extra_stat" type="boolean" value="false"
-		 label="Show total scores from a scan of multiple peds"/>
-	  <when value="true" >
-	    <conditional name="advanced_options_stat_het" >
-	      <param name="extra_stathet" type="select" >
-		<option value="het"  />
-		<option value="stat" />
-	      </param>
-	      <when value="het" >
-		<param name="extra_statalpha"  value="" type="integer" />
-	      </when>
-	      <when value="stat" ></when>
-	    </conditional>
-	  </when>
-	  <when value="false" />
-	</conditional>
+	</section>
+	<!-- End of Frequency section:Works -->
 
--->
-<!--
-	<conditional name="advanced_options_alg" >
-	  <param name="extra_alg" value="true" type="boolean" />
-	  <when value="true" >
-	    <param name="extra_alg_mem" value="true" type="boolean" />
-	  </when>
-	  <when value="false" >
-	    <param name="extra_mod_savedmodels" type="integer" value="-1"
-		   label="Number of models to save" />
-	  </when>
-	</conditional>
-
-	<conditional name="advanced_options_model" >
-	  <param name="extra_mod_model" type="boolean" value="true" />
-	  <when value="true" >
-	    <param name="extra_mod_modeldisfreq" type="float" label="disease allele frequency" />
-	    <param name="extra_mod_modelpenet" type="text" label="3 of 4 penetrances" />
-	  </when>
-	  <when value="false" />
-	</conditional>
-
-	<param name="extra_includeuntyped" type="boolean" value="true"
-	       label="Include untyped individuals" />
-
-	<param name="extra_discard" type="boolean" value="false"
-	       label="Discard uninformative individuals"  />
-
-	<param name="extra_ufo" type="boolean" value="false"
-	       label="Use untyped founders" />
-
-	<param name="extra_mod_penetrancerestrict" type="boolean" value="true"
-	       label="Restrict Penetrances" />
-
-	<param name="extra_mod_allfreq" type="float" min="0" max="1" value="0.5"
-	       label="Restrict disease allele frequency" />
-
-	<param name="extra_mod_highallele" type="float" min="0" max="1" value="0.5"
-	       label="Set maximum disease allele frequency" />
-
-	<param name="extra_mod_dimension" type="integer" min="1" max="5" value="2"
-	       label="Number of parameters to vary" />
-
-	<param name="extra_nmaf" type="boolean" value="false"
-	       label="Normalize Allele Frequencies" />
--->
+	<!-- Sample Individuals section -->
+	<section name="section_sample" title="Sample Options" >
+	  <param name="extra_sun" type="boolean" value="false"
+		 label="Simulate untyped individuals" />
+	  <param name="extra_includeuntyped" type="boolean" value="true"
+		 label="Include untyped individuals" />
+	  <param name="extra_cpv_fin" type="boolean" value="false"
+		 label="Process fully homozygous (uninformative) genotypes" />
+	  <param name="extra_discard" type="boolean" value="false"
+		 label="Discard uninformative individuals"  />
+	  <param name="extra_ufo" type="boolean" value="false"
+		 label="Use untyped founders" />
+	</section>
+	<!-- End of sample individuals -->
       </section>
+      <!-- End of advanced options -->
     </inputs>
 
     <outputs>
@@ -431,6 +440,6 @@
     </tests>
 
     <help>
-      This tool computes linkage anaysis and/or haplotype analysis for a set of input linkage files
+Genehunter-MODscore calculates a maximized LOD score (MOD) linkage and haplotype analysis, with many configurable options.
     </help>
 </tool>
