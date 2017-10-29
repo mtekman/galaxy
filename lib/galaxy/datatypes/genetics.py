@@ -430,8 +430,6 @@ class LinkageStudies(Text):
 
             return self.eof_res
         return False
-        
-
 
 
 class PreMakePed(LinkageStudies):
@@ -494,7 +492,6 @@ class GenotypeMatrix(LinkageStudies):
 
 
     def lineOp(self, line):
-
         tokens = line.split('\t')
 
         if self.num_cols == -1:
@@ -518,6 +515,46 @@ class GenotypeMatrix(LinkageStudies):
             return False
 
         return True
+
+
+class MarkerMap(LinkageStudies):
+    """
+    Map of genetic markers including physical and genetic distance
+
+    chrom, markername, genetic pos, physical pos, markername, "x"
+    """
+
+    def header_check(self, fio):
+        headers = fio.readline().split()
+
+        if len(headers) == 6 and headers[0].lower()[:3] == "chr":
+            return True
+
+        return False
+
+
+    def lineOp(self, line):
+
+        try:
+            chrm, nam1, gp, bp, nam2, jnk = line.splitlines()[0].split()
+
+            float(gp);
+            int(bp);
+
+            try:
+                int(chrm)
+            except ValueError:
+                if not chrm.lower()[0] in ('x', 'y', 'm'):
+                    return False
+
+            if nam1 != nam2:
+                return False
+
+        except ValueError:
+            return False
+
+        return None
+
 
 
 class Lped(Rgenetics):
