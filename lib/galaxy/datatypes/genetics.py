@@ -380,7 +380,61 @@ class SNPMatrix(Rgenetics):
             return True
 
 
-class PreMakePed(Text):
+class LinkageStudies(Text):
+    """
+    superclass for classical linkage analysis suites
+    """
+    def __init__(self,**kwd):
+        super(**kwd)
+        self.max_lines = 2000
+        self.eof_res = False
+
+
+    def _isBinaryFile(self, fstream):
+        result=False
+        if '\x00' in fstream.readline(512):
+            result=True
+
+        fstream.seek(0)
+        return result
+
+
+    def _perLineOp(self, **kwd):
+
+        self.max_lines -= 1
+        if self.max_lines < 0:
+            return False
+
+        return self.lineOp(**kwd)
+
+
+    def header_check(self):
+        return True
+
+
+    def sniff(self, filename):
+
+        with open(filename, "r") as fio:
+
+            if self._isBinaryFile(fio):
+                return False
+
+            if self.header_check(fio) == False:
+                return False
+
+            for line in fio:
+                line_res = self._perLineOp(line)
+
+                if line_res != None:
+                    return line_res
+
+            return self.eof_res
+        return False
+        
+
+
+
+class PreMakePed(LinkageStudies):
     """
     Extended linkage pedigree file containing:
          pedigree_id, individ_id, fath_id, moth_id, gender, affectation, [genotypes]
@@ -390,40 +444,28 @@ class PreMakePed(Text):
     def __init__(self, **kwd):
         super(**kwd)
         self.num_colns = None
-        
+        self.max_lines = 1000
+        self.eof_res = True
 
-    def sniff(self, filename):
 
-        with open(filename, "r") as fio:
+    def lineOp(self,line):
 
-            if '\x00' in fio.readline(512):
+        tokens = line.splitlines()[0].strip().split()
+
+        if self.num_colns == None:
+            self.num_colns = len(tokens)
+
+        elif self.num_colns != len(tokens):
+            return False
+
+        try:
+            if set([int(val) > 0 for val in tokens]) != {True}:
                 return False
 
-            fio.seek(0)
-
-            max_lines=1000
-
-            for line in fio:
-
-                max_lines -= 1
-                if max_lines < 0:
-                    break
-
-                tokens = line.splitlines()[0].strip().split()
-
-                if self.num_colns == None:
-                    self.num_colns = len(tokens)
-
-                elif self.num_colns != len(tokens):
-                    return False
-
-                try:
-                    return set([int(val) > 0 for val in tokens]) == {True}
-                except ValueError:
-                    return False
-
+        except ValueError:
             return False
-        return False
+
+        return None
 
 
 class Pedfile(PreMakePed):
@@ -439,42 +481,43 @@ class Pedfile(PreMakePed):
         self.num_colns = 6
 
 
-class GenotypeMatrix(Text):
+class GenotypeMatrix(LinkageStudies):
     """
     Sample matrix of genotypes
     - GTs as columns
     """
     file_ext = "gt_map"
 
-    def sniff(self, filename):
+    def __init__(self, **kwd):
+        super(**kwd)
+        self.eof_res = True
 
-        with open(filename, "r") as fio:
 
-            if '\x00' in fio.read(512):
-                return False
+    def lineOp(self, line):
 
-            header_elems = fio.readline().splitlines()[0].strip().split('\t')
-            try:
-                [int(sid) > 0 for sid in header_elems[1:]]
-            except ValueError:
-                return False
+        tokens = line.split('\t')
 
-            num_cols = -1
+        if self.num_cols == -1:
+            self.num_cols = len(tokens)
 
-            for line in fio:
-                line = line.splitlines()[0].strip()
-                tokens = line.split('\t')
+        elif self.num_cols != len(tokens):
+            return False
 
-                if num_cols == -1:
-                    num_cols = len(tokens)
-                elif num_cols != len(tokens):
-                    return False
+        if not VALID_GENOTYPES_LINE.match(line):
+            return False
 
-                if not VALID_GENOTYPES_LINE.match(line):
-                    return False
+        return None
 
-            return True
-        return False
+
+    def header_check(self, fio):
+        header_elems = fio.readline().splitlines()[0].strip().split('\t')
+
+        try:
+            [int(sid) > 0 for sid in header_elems[1:]]
+        except ValueError:
+            return False
+
+        return True
 
 
 class Lped(Rgenetics):
