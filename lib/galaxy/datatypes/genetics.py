@@ -387,7 +387,9 @@ class LinkageStudies(Text):
     def __init__(self,**kwd):
         super(**kwd)
         self.max_lines = 2000
-        self.eof_res = False
+        # iterate whole file without errors
+        self.eof_res = True
+
 
 
     def _isBinaryFile(self, fstream):
@@ -399,13 +401,13 @@ class LinkageStudies(Text):
         return result
 
 
-    def _perLineOp(self, **kwd):
+    def _perLineOp(self, line):
 
         self.max_lines -= 1
         if self.max_lines < 0:
             return False
 
-        return self.lineOp(**kwd)
+        return self.lineOp(line)
 
 
     def header_check(self):
@@ -443,7 +445,6 @@ class PreMakePed(LinkageStudies):
         super(**kwd)
         self.num_colns = None
         self.max_lines = 1000
-        self.eof_res = True
 
 
     def lineOp(self,line):
@@ -488,8 +489,8 @@ class GenotypeMatrix(LinkageStudies):
 
     def __init__(self, **kwd):
         super(**kwd)
-        self.eof_res = True
-
+        # modern GT chipsets max at 5M
+        self.max_lines = 5000000
 
     def lineOp(self, line):
         tokens = line.split('\t')
@@ -523,6 +524,13 @@ class MarkerMap(LinkageStudies):
 
     chrom, markername, genetic pos, physical pos, markername, "x"
     """
+    file_ext = "mm"
+
+    def __init__(self, **kwd):
+        super(**kwd)
+        # sensible linkage should not exceed more than 500,000 markers
+        self.max_lines = 500000
+
 
     def header_check(self, fio):
         headers = fio.readline().split()
@@ -554,6 +562,42 @@ class MarkerMap(LinkageStudies):
             return False
 
         return None
+
+
+class MAF(LinkageStudies):
+    """
+    Minor Allele Frequencies of marker lists
+    """
+    file_ext = "maf"
+    
+    def __init__(self,**kwd):
+        super(**kwd)
+        self.max_lines = 5000000
+    
+    def header_check(self, fio):
+        fio.readline() # seek ahead
+        return True
+
+
+    def lineOp(self, line):
+        tokens = line.split()
+
+        if len(tokens) != 2:
+            return False
+        
+        try:
+            int(tokens[0])
+            return False
+        except ValueError:
+            pass
+
+        try:
+            float(tokens[1])
+        except ValueError:
+            return False
+
+        return None
+
 
 
 
