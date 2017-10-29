@@ -31,6 +31,7 @@ verbose = False
 
 # https://genome.ucsc.edu/goldenpath/help/hgGenomeHelp.html
 VALID_GENOME_GRAPH_MARKERS = re.compile('^(chr.*|RH.*|rs.*|SNP_.*|CN.*|A_.*)')
+VALID_GENOTYPES_LINE = re.compile('^([a-zA-Z0-9]+)(\\s([0-9]{2}|[A-Z]{2}|NC|\?\?))+\\s*$')
 
 
 class GenomeGraphs(Tabular):
@@ -438,9 +439,42 @@ class Pedfile(PreMakePed):
         self.num_colns = 6
 
 
+class GenotypeMatrix(Text):
+    """
+    Sample matrix of genotypes
+    - GTs as columns
+    """
+    file_ext = "gt_map"
 
+    def sniff(self, filename):
 
+        with open(filename, "r") as fio:
 
+            if '\x00' in fio.read(512):
+                return False
+
+            header_elems = fio.readline().splitlines()[0].strip().split('\t')
+            try:
+                [int(sid) > 0 for sid in header_elems[1:]]
+            except ValueError:
+                return False
+
+            num_cols = -1
+
+            for line in fio:
+                line = line.splitlines()[0].strip()
+                tokens = line.split('\t')
+
+                if num_cols == -1:
+                    num_cols = len(tokens)
+                elif num_cols != len(tokens):
+                    return False
+
+                if not VALID_GENOTYPES_LINE.match(line):
+                    return False
+
+            return True
+        return False
 
 
 class Lped(Rgenetics):
