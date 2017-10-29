@@ -379,6 +379,70 @@ class SNPMatrix(Rgenetics):
             return True
 
 
+class PreMakePed(Text):
+    """
+    Extended linkage pedigree file containing:
+         pedigree_id, individ_id, fath_id, moth_id, gender, affectation, [genotypes]
+    """
+    file_ext = "pedin"
+
+    def __init__(self, **kwd):
+        super(**kwd)
+        self.num_colns = None
+        
+
+    def sniff(self, filename):
+
+        with open(filename, "r") as fio:
+
+            if '\x00' in fio.readline(512):
+                return False
+
+            fio.seek(0)
+
+            max_lines=1000
+
+            for line in fio:
+
+                max_lines -= 1
+                if max_lines < 0:
+                    break
+
+                tokens = line.splitlines()[0].strip().split()
+
+                if self.num_colns == None:
+                    self.num_colns = len(tokens)
+
+                elif self.num_colns != len(tokens):
+                    return False
+
+                try:
+                    return set([int(val) > 0 for val in tokens]) == {True}
+                except ValueError:
+                    return False
+
+            return False
+        return False
+
+
+class Pedfile(PreMakePed):
+    """
+    Truncated PreMakePed file:
+       - individuals specified on a single line
+       - no genotype data
+    """
+    file_ext = "ped"
+
+    def __init__(self, **kwd):
+        super(**kwd)
+        self.num_colns = 6
+
+
+
+
+
+
+
 class Lped(Rgenetics):
     """
     linkage pedigree (ped,map) Rgenetics data collections
