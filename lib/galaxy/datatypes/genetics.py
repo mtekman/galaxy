@@ -1260,6 +1260,38 @@ class Allegro_Setup(LinkageStudies):
         return None
 
 
+class GHMHaplo(LinkageStudies):
+    """
+    Genehunter output phased haplotypes
+    """
+    file_ext = "ghmhaplo"
+
+    def header_check(self, fio):
+        self.num_markers = -1
+        return fio.readline().startswith("*****")
+
+
+    def lineOp(self, line):
+        tokens = LinkageStudies.tokenizer(line)
+
+        try:
+            num_tokens = len(map(int, tokens))
+
+            if self.num_markers == -1:
+                self.num_markers = num_tokens - 4
+
+            elif self.num_markers != num_tokens:
+                self.num_markers = -1
+                return False
+
+        except ValueError:
+            return False
+
+        return None
+
+
+
+
 class GHMLOD(LinkageStudies):
     """
     Genehunter output file for parametric LOD
@@ -1268,16 +1300,105 @@ class GHMLOD(LinkageStudies):
 
     def __init__(self, **kwd):
         super(**kwd)
-        self.lod_header = False
+        self.lod_header = -1
+        self.eof_res = False
+        self.lin_fin = "position  LOD score    NPL score  p-value    information"
 
     def lineOp(self, line):
 
-        if line.startswith("position  LOD score    NPL score  p-value    information"):
-            self.lod_header = True
+        if line.startswith(self.lin_fin):
+            self.lod_header = self.lcount
+            return None
 
-        #if self.lod_header:
-            
+        if self.lod_header != -1:
+            if self.lod_header < self.lcount <= self.lod_header + 20:
+                tokens = LinkageStudies.tokenizer(line)
 
+                try:
+                    map(float,tokens)
+                    if self.lod_header + 20:
+                        return True
+
+                except ValueError:
+                    return False
+
+        return None
+
+
+class MerlinLOD(GHMLOD):
+    """
+    Merlin output file for parametric LOD
+    """
+    file_ext = "merlinlod"
+
+    def __init__(self, **kwd):
+        super(**kwd)
+        self.lin_fin = "       POSITION        LOD      ALPHA       HLOD"
+
+    def header_check(self, fio):
+        return fio.readline().split()[0] == "MERLIN"
+
+
+class MerlinChr(LinkageStudies):
+    """
+    Merlin output file for phased haplotypes
+    """
+    file_ext = "merlinchr"
+
+    def __init__(self, **kwd):
+        super(**kwd)
+        self.indiv_line = -1
+
+
+    def header_check(self, fio):
+        return fio.readline().split()[0] == "FAMILY"
+
+
+    def internalLineOp(self, alleles):
+        try:
+            map(int, alleles)
+
+            if self.lod_header + 20:
+                return True
+
+        except ValueError:
+            return False
+
+        return None
+
+
+    def lineOp(self, line):
+
+        if line.contains("(F)") or line.contains("(M)"):
+            self.indiv_line = self.lcount
+            return None
+
+        if self.indiv_line != -1:
+            if self.indiv_line < self.lcount <= self.indiv_line + 20:
+                tokens = LinkageStudies.tokenizer(line)
+                alleles = filter(lambda x: x not in ('?',':'), tokens)
+
+                return self.internalLineOp(alleles)
+
+
+        return None
+
+
+class MerlinFlow(MerlinChr):
+    """
+    Merlin output file for descent data (founder allele groups)
+    """
+    file_ext = "merlinflow"
+
+    def internalLineOp(self, alleles):
+        try:
+            if set(map(lambda x : ord(x) in range(65,90), alleles)) != {True}:
+                return False
+
+        except ValueError:
+            return False
+
+        return None
 
 
 
