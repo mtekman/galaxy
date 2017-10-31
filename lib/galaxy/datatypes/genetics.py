@@ -380,227 +380,6 @@ class SNPMatrix(Rgenetics):
             return True
 
 
-class LinkageStudies(Text):
-    """
-    superclass for classical linkage analysis suites
-    """
-    def __init__(self,**kwd):
-        super(**kwd)
-        self.max_lines = 2000
-        # iterate whole file without errors
-        self.eof_res = True
-
-
-
-    def _isBinaryFile(self, fstream):
-        result=False
-        if '\x00' in fstream.readline(512):
-            result=True
-
-        fstream.seek(0)
-        return result
-
-
-    def _perLineOp(self, line):
-
-        self.max_lines -= 1
-        if self.max_lines < 0:
-            return False
-
-        return self.lineOp(line)
-
-
-    def header_check(self):
-        return True
-
-
-    def sniff(self, filename):
-
-        with open(filename, "r") as fio:
-
-            if self._isBinaryFile(fio):
-                return False
-
-            if self.header_check(fio) == False:
-                return False
-
-            for line in fio:
-                line_res = self._perLineOp(line)
-
-                if line_res != None:
-                    return line_res
-
-            return self.eof_res
-        return False
-
-
-class PreMakePed(LinkageStudies):
-    """
-    Extended linkage pedigree file containing:
-         pedigree_id, individ_id, fath_id, moth_id, gender, affectation, [genotypes]
-    """
-    file_ext = "pedin"
-
-    def __init__(self, **kwd):
-        super(**kwd)
-        self.num_colns = None
-        self.max_lines = 1000
-
-
-    def lineOp(self,line):
-
-        tokens = line.splitlines()[0].strip().split()
-
-        if self.num_colns == None:
-            self.num_colns = len(tokens)
-
-        elif self.num_colns != len(tokens):
-            return False
-
-        try:
-            if set([int(val) > 0 for val in tokens]) != {True}:
-                return False
-
-        except ValueError:
-            return False
-
-        return None
-
-
-class Pedfile(PreMakePed):
-    """
-    Truncated PreMakePed file:
-       - individuals specified on a single line
-       - no genotype data
-    """
-    file_ext = "ped"
-
-    def __init__(self, **kwd):
-        super(**kwd)
-        self.num_colns = 6
-
-
-class GenotypeMatrix(LinkageStudies):
-    """
-    Sample matrix of genotypes
-    - GTs as columns
-    """
-    file_ext = "gt_map"
-
-    def __init__(self, **kwd):
-        super(**kwd)
-        # modern GT chipsets max at 5M
-        self.max_lines = 5000000
-
-    def lineOp(self, line):
-        tokens = line.split('\t')
-
-        if self.num_cols == -1:
-            self.num_cols = len(tokens)
-
-        elif self.num_cols != len(tokens):
-            return False
-
-        if not VALID_GENOTYPES_LINE.match(line):
-            return False
-
-        return None
-
-
-    def header_check(self, fio):
-        header_elems = fio.readline().splitlines()[0].strip().split('\t')
-
-        try:
-            [int(sid) > 0 for sid in header_elems[1:]]
-        except ValueError:
-            return False
-
-        return True
-
-
-class MarkerMap(LinkageStudies):
-    """
-    Map of genetic markers including physical and genetic distance
-
-    chrom, markername, genetic pos, physical pos, markername, "x"
-    """
-    file_ext = "mm"
-
-    def __init__(self, **kwd):
-        super(**kwd)
-        # sensible linkage should not exceed more than 500,000 markers
-        self.max_lines = 500000
-
-
-    def header_check(self, fio):
-        headers = fio.readline().split()
-
-        if len(headers) == 6 and headers[0].lower()[:3] == "chr":
-            return True
-
-        return False
-
-
-    def lineOp(self, line):
-
-        try:
-            chrm, nam1, gp, bp, nam2, jnk = line.splitlines()[0].split()
-
-            float(gp);
-            int(bp);
-
-            try:
-                int(chrm)
-            except ValueError:
-                if not chrm.lower()[0] in ('x', 'y', 'm'):
-                    return False
-
-            if nam1 != nam2:
-                return False
-
-        except ValueError:
-            return False
-
-        return None
-
-
-class MAF(LinkageStudies):
-    """
-    Minor Allele Frequencies of marker lists
-    """
-    file_ext = "maf"
-    
-    def __init__(self,**kwd):
-        super(**kwd)
-        self.max_lines = 5000000
-    
-    def header_check(self, fio):
-        fio.readline() # seek ahead
-        return True
-
-
-    def lineOp(self, line):
-        tokens = line.split()
-
-        if len(tokens) != 2:
-            return False
-        
-        try:
-            int(tokens[0])
-            return False
-        except ValueError:
-            pass
-
-        try:
-            float(tokens[1])
-        except ValueError:
-            return False
-
-        return None
-
-
-
-
 class Lped(Rgenetics):
     """
     linkage pedigree (ped,map) Rgenetics data collections
@@ -1047,6 +826,357 @@ class MAlist(RexpBase):
         self.add_composite_file('%s.malist',
                                 description='MAlist R object saved to file',
                                 substitute_name_with_metadata='base_name', is_binary=True)
+
+
+class LinkageStudies(Text):
+    """
+    superclass for classical linkage analysis suites
+    """
+    def __init__(self,**kwd):
+        super(**kwd)
+        self.lcount = 0
+        self.max_lines = 2000
+        # iterate whole file without errors
+        self.eof_res = True
+
+
+    def eof_function():
+        return self.eof_res
+
+
+    def _isBinaryFile(self, fstream):
+        result=False
+        if '\x00' in fstream.readline(512):
+            result=True
+
+        fstream.seek(0)
+        return result
+
+
+    def _perLineOp(self, line):
+
+        self.lcount += 1
+        if self.lcount > self.max_lines:
+            return False
+
+        return self.lineOp(line)
+
+
+    def header_check(self):
+        return True
+
+
+    def sniff(self, filename):
+
+        with open(filename, "r") as fio:
+
+            if self._isBinaryFile(fio):
+                return False
+
+            if self.header_check(fio) == False:
+                return False
+
+            for line in fio:
+                line_res = self._perLineOp(line)
+
+                if line_res != None:
+                    return line_res
+
+            return self.eof_function()
+        return False
+
+
+class PreMakePed(LinkageStudies):
+    """
+    Common linkage pedin format
+    Extended linkage pedigree file containing:
+         pedigree_id, individ_id, fath_id, moth_id, gender, affectation, [genotypes]
+    """
+    file_ext = "pedin"
+
+    def __init__(self, **kwd):
+        super(**kwd)
+        self.num_colns = None
+        self.max_lines = 1000
+
+
+    def lineOp(self,line):
+
+        tokens = line.splitlines()[0].strip().split()
+
+        if self.num_colns == None:
+            self.num_colns = len(tokens)
+
+        elif self.num_colns != len(tokens):
+            return False
+
+        try:
+            if set([int(val) > 0 for val in tokens]) != {True}:
+                return False
+
+        except ValueError:
+            return False
+
+        return None
+
+
+class Pedfile(PreMakePed):
+    """
+    Truncated PreMakePed file:
+       - individuals specified on a single line
+       - no genotype data
+    """
+    file_ext = "ped"
+
+    def __init__(self, **kwd):
+        super(**kwd)
+        self.num_colns = 6
+
+
+class GenotypeMatrix(LinkageStudies):
+    """
+    Sample matrix of genotypes
+    - GTs as columns
+    """
+    file_ext = "gt_map"
+
+    def __init__(self, **kwd):
+        super(**kwd)
+        # modern GT chipsets max at 5M
+        self.max_lines = 5000000
+
+    def lineOp(self, line):
+        tokens = line.split('\t')
+
+        if self.num_cols == -1:
+            self.num_cols = len(tokens)
+
+        elif self.num_cols != len(tokens):
+            return False
+
+        if not VALID_GENOTYPES_LINE.match(line):
+            return False
+
+        return None
+
+
+    def header_check(self, fio):
+        header_elems = fio.readline().splitlines()[0].strip().split('\t')
+
+        try:
+            [int(sid) > 0 for sid in header_elems[1:]]
+        except ValueError:
+            return False
+
+        return True
+
+
+class MarkerMap(LinkageStudies):
+    """
+    Map of genetic markers including physical and genetic distance
+    Common input format for linkage programs
+
+    chrom, genetic pos, markername, physical pos, Nr
+    """
+    file_ext = "mm"
+
+    def __init__(self, **kwd):
+        super(**kwd)
+        # sensible linkage should not exceed more than 500,000 markers
+        self.max_lines = 500000
+
+
+    def header_check(self, fio):
+        headers = fio.readline().split()
+
+        if len(headers) == 5 and headers[0].lower()[:4] == "#Chr":
+            return True
+
+        return False
+
+
+    def lineOp(self, line):
+
+        try:
+            chrm, gp, nam, bp, row = line.splitlines()[0].split()
+
+            float(gp);
+            int(bp);
+
+            try:
+                int(chrm)
+            except ValueError:
+                if not chrm.lower()[0] in ('x', 'y', 'm'):
+                    return False
+
+        except ValueError:
+            return False
+
+        return None
+
+
+class AlohomoraMarkerMap(LinkageStudies):
+    """
+    Map of genetic markers including physical and genetic distance
+
+    chrom, markername, genetic pos, physical pos, markername, "x"
+    """
+    file_ext = "amm"
+
+    def __init__(self, **kwd):
+        super(**kwd)
+        # sensible linkage should not exceed more than 500,000 markers
+        self.max_lines = 500000
+
+
+    def header_check(self, fio):
+        headers = fio.readline().split()
+
+        if len(headers) == 6 and headers[0].lower()[:3] == "chr":
+            return True
+
+        return False
+
+
+    def lineOp(self, line):
+
+        try:
+            chrm, nam1, gp, bp, nam2, jnk = line.splitlines()[0].split()
+
+            float(gp);
+            int(bp);
+
+            try:
+                int(chrm)
+            except ValueError:
+                if not chrm.lower()[0] in ('x', 'y', 'm'):
+                    return False
+
+            if nam1 != nam2:
+                return False
+
+        except ValueError:
+            return False
+
+        return None
+
+
+class MAF(LinkageStudies):
+    """
+    Minor Allele Frequencies of marker lists
+    """
+    file_ext = "maf"
+
+    def __init__(self,**kwd):
+        super(**kwd)
+        self.max_lines = 5000000
+
+    def header_check(self, fio):
+        fio.readline() # seek ahead
+        return True
+
+
+    def lineOp(self, line):
+        tokens = line.split()
+
+        if len(tokens) != 2:
+            return False
+
+        try:
+            int(tokens[0])
+            return False
+        except ValueError:
+            pass
+
+        try:
+            float(tokens[1])
+        except ValueError:
+            return False
+
+        return None
+
+
+class AllegroSetup(LinkageStudies):
+
+
+    def __init__(self, **kwd):
+        super(**kwd)
+        self.max_lines = 100
+        self.find_line = {
+            'PREFILE' : False,
+            'DATFILE' : False,
+            'MODEL' : False
+        }
+        self.eof_res = False
+
+
+    def lineOp(self, line):
+        for f_line in self.find_line:
+            if line.startswith(f_line):
+                self.find_line[f_line] = True
+
+        if set(self.find_line.values()) == {True}:
+            return True
+
+        return None
+
+
+class DataIn(LinkageStudies):
+
+    def __init__(self, **kwd):
+        super(**kwd)
+        self.num_markers = -1
+        self.intermarkers = 0
+
+
+    def eof_function(self):
+        return (self.num_markers - 1) == self.intermarkers
+
+
+    def lineOp(self, line):
+
+        tokens = line.splitlines()[0].strip().split()
+
+        try:
+
+            if self.lcount == 1:
+
+                self.num_markers = int(tokens[0])
+                map(int, tokens[1:])
+
+            elif self.lcount == 2:
+
+                map(float, tokens)
+                if len(tokens) != 4:
+                    return False
+
+            elif self.lcount == 3:
+
+                map(int, tokens)
+                num_tokens = len(tokens)
+                last_token = int(tokens[-1])
+
+                if self.num_markers == None:
+                    return False
+
+                if len(tokens) != last_token:
+                    return False
+
+                if self.num_markers == last_token:
+                    return False
+
+            elif int(tokens[0]) == 3 and int(tokens[1]) == 2:
+                    self.intermarkers += 1
+
+            return None
+
+        except ValueError:
+            return False
+
+
+
+
+
 
 
 if __name__ == '__main__':
