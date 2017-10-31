@@ -1096,8 +1096,45 @@ class MAF(LinkageStudies):
         return None
 
 
-class AllegroSetup(LinkageStudies):
+class Allegro_Haplo(LinkageStudies):
+    """
+    Allegro output format for haplotypes
+    """
+    file_ext = "ihaplo"
 
+    def sniff(self):
+        """
+        tests
+        """
+        super(Allegro_Haplo, self).sniff()
+
+    def header_check(self, fio):
+        header = []
+        while True:
+            line = fio.readline():
+            if line.startswith("          "):
+                header.append(line.splitlines()[0])
+            else:
+                break
+
+        if len(header) == 0:
+            return False
+
+        # transpose headers
+        markers = ["".join(x[::-1]).strip() for x in zip(*header)]
+        markers = filter(lambda x: x != "", markers)
+
+        for mark in markers:
+            if len(mark.split(" ")) > 0:
+                return False
+        
+
+
+class Allegro_Setup(LinkageStudies):
+    """
+    Allegro input setup file
+    """
+    file_ext = "allegro_in"
 
     def __init__(self, **kwd):
         super(**kwd)
@@ -1108,7 +1145,6 @@ class AllegroSetup(LinkageStudies):
             'MODEL' : False
         }
         self.eof_res = False
-
 
     def lineOp(self, line):
         for f_line in self.find_line:
@@ -1122,16 +1158,19 @@ class AllegroSetup(LinkageStudies):
 
 
 class DataIn(LinkageStudies):
+    """
+    Common linkage input file for intermarker distances
+    and recombination rates
+    """
+    file_ext = "datain"
 
     def __init__(self, **kwd):
         super(**kwd)
         self.num_markers = -1
         self.intermarkers = 0
 
-
     def eof_function(self):
         return (self.num_markers - 1) == self.intermarkers
-
 
     def lineOp(self, line):
 
