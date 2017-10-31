@@ -839,8 +839,15 @@ class LinkageStudies(Text):
         # iterate whole file without errors
         self.eof_res = True
 
+    @staticmethod
+    def tokenizer(line, sep=None):
+        if sep == None:
+            return LinkageStudies.tokenizer(line)
 
-    def eof_function():
+        return line.splitlines()[0].split(sep)
+
+
+    def eof_function(self):
         return self.eof_res
 
 
@@ -998,7 +1005,7 @@ class MarkerMap(LinkageStudies):
     def lineOp(self, line):
 
         try:
-            chrm, gp, nam, bp, row = line.splitlines()[0].split()
+            chrm, gp, nam, bp, row = LinkageStudies.tokenizer(line)
 
             float(gp);
             int(bp);
@@ -1041,7 +1048,7 @@ class AlohomoraMarkerMap(LinkageStudies):
     def lineOp(self, line):
 
         try:
-            chrm, nam1, gp, bp, nam2, jnk = line.splitlines()[0].split()
+            chrm, nam1, gp, bp, nam2, jnk = LinkageStudies.tokenizer(line)
 
             float(gp);
             int(bp);
@@ -1092,67 +1099,6 @@ class MAF(LinkageStudies):
             float(tokens[1])
         except ValueError:
             return False
-
-        return None
-
-
-class Allegro_Haplo(LinkageStudies):
-    """
-    Allegro output format for haplotypes
-    """
-    file_ext = "ihaplo"
-
-    def sniff(self):
-        """
-        tests
-        """
-        super(Allegro_Haplo, self).sniff()
-
-    def header_check(self, fio):
-        header = []
-        while True:
-            line = fio.readline():
-            if line.startswith("          "):
-                header.append(line.splitlines()[0])
-            else:
-                break
-
-        if len(header) == 0:
-            return False
-
-        # transpose headers
-        markers = ["".join(x[::-1]).strip() for x in zip(*header)]
-        markers = filter(lambda x: x != "", markers)
-
-        for mark in markers:
-            if len(mark.split(" ")) > 0:
-                return False
-        
-
-
-class Allegro_Setup(LinkageStudies):
-    """
-    Allegro input setup file
-    """
-    file_ext = "allegro_in"
-
-    def __init__(self, **kwd):
-        super(**kwd)
-        self.max_lines = 100
-        self.find_line = {
-            'PREFILE' : False,
-            'DATFILE' : False,
-            'MODEL' : False
-        }
-        self.eof_res = False
-
-    def lineOp(self, line):
-        for f_line in self.find_line:
-            if line.startswith(f_line):
-                self.find_line[f_line] = True
-
-        if set(self.find_line.values()) == {True}:
-            return True
 
         return None
 
@@ -1213,7 +1159,124 @@ class DataIn(LinkageStudies):
             return False
 
 
+class AllegroDescent(AllegroHaplo):
+    """
+    Allegro output format for founder allele groups
+    """
+    file_ext = "founder"
 
+    
+
+class AllegroHaplo(PreMakePed):
+    """
+    Allegro output format for phased haplotypes
+    """
+    file_ext = "ihaplo"
+
+    def sniff(self):
+        """
+        tests
+        """
+        super(Allegro_Haplo, self).sniff()
+
+    def header_check(self, fio):
+        header = []
+        while True:
+            line = fio.readline():
+            if line.startswith("          "):
+                header.append(line.splitlines()[0])
+            else:
+                break
+
+        if len(header) == 0:
+            return False
+
+        # transpose headers
+        markers = ["".join(x[::-1]).strip() for x in zip(*header)]
+        markers = filter(lambda x: x != "", markers)
+
+        for mark in markers:
+            if len(mark.split(" ")) > 0:
+                return False
+        
+
+class AllegroLOD(LinkageStudies):
+    """
+    Allegro output format for LOD scores
+    """
+    file_ext = "fparam"
+
+    def header_check(self, fio):
+        header = fio.readline().splitlines()[0].split()
+        if not(header[0] == "family" and
+            header[1] == "location" and
+            header[2] == "LOD" and
+            header[3] == "marker"):
+            return False
+        return True
+            
+        
+    def lineOp(self, line):
+        tokens = LinkageStudies.tokenizer(line)
+
+        try:
+            int(tokens[0])
+            float(tokens[1])
+
+            if tokens[2] != "-inf":
+                float(tokens[2])
+
+        except ValueError:
+            return False
+
+        return None
+        
+
+
+class Allegro_Setup(LinkageStudies):
+    """
+    Allegro input setup file
+    """
+    file_ext = "allegro_in"
+
+    def __init__(self, **kwd):
+        super(**kwd)
+        self.max_lines = 100
+        self.find_line = {
+            'PREFILE' : False,
+            'DATFILE' : False,
+            'MODEL' : False
+        }
+        self.eof_res = False
+
+    def lineOp(self, line):
+        for f_line in self.find_line:
+            if line.startswith(f_line):
+                self.find_line[f_line] = True
+
+        if set(self.find_line.values()) == {True}:
+            return True
+
+        return None
+
+
+class GHMLOD(LinkageStudies):
+    """
+    Genehunter output file for parametric LOD
+    """
+    file_ext = "ghmlod"
+
+    def __init__(self, **kwd):
+        super(**kwd)
+        self.lod_header = False
+
+    def lineOp(self, line):
+
+        if line.startswith("position  LOD score    NPL score  p-value    information"):
+            self.lod_header = True
+
+        #if self.lod_header:
+            
 
 
 
