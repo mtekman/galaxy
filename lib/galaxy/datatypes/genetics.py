@@ -1325,6 +1325,7 @@ class GHMLOD(LinkageStudies):
         return None
 
 
+
 class MerlinLOD(GHMLOD):
     """
     Merlin output file for parametric LOD
@@ -1384,7 +1385,7 @@ class MerlinChr(LinkageStudies):
         return None
 
 
-class MerlinFlow(MerlinChr):
+class MerlinHaplo(MerlinChr):
     """
     Merlin output file for descent data (founder allele groups)
     """
@@ -1401,6 +1402,82 @@ class MerlinFlow(MerlinChr):
         return None
 
 
+class Mega2HEF(LinkageStudies):
+    """
+    Mega2 Simwalk output file. Contains LOD, phased haplotypes, 
+    and founder groups
+    """
+    file_ext = "hef"
+
+    def __init__(self, **kwd):
+        self.lod_header = -1
+        self.hap_header = -1
+
+
+    def header_check(self, fio):
+        return fio.readline().split()[0] == "HEF"
+
+    def eof_function(self):
+        return (self.lod_header != -1 or self.hap_header != -1)
+
+
+    def lineOp(self, line):
+
+        if line.startswith("Marker  Map: Haldane-cM  Number of  Allele Names and"):
+            self.hap_header = -1
+            self.lod_header = self.lcount
+            return None
+
+        if line.startswith("Num. of Individuals                             Pheno"):
+            self.hap_header = self.lcount
+            self.lod_header = -1
+            return None
+
+        if self.lod_header != -1:
+            if self.lod_header + 2 < self.lcount < self.lod_header + 12:
+
+                tokens = LinkageStudies.tokenizer(line)
+
+                if (self.lcount - self.lod_header) % 2 == 0:
+                    # even lines, markers
+                    if line.startswith("          "):
+                        return False
+
+                    try:
+                        float(tokens[1]); float(tokens[2]); int(tokens[3])
+                    except ValueError:
+                        return False
+                else:
+                    # odd lines, intermarker distances
+                    if not line.startswith("          "):
+                        return False
+
+                    try:
+                        int(tokens[0]); float(tokens[1]); int(tokens[2]); float(tokens[3])
+                    except ValueError:
+                        return False
+
+        if self.hap_header != -1:
+            tokens = LinkageStudies.tokenizer(line)
+
+            try:
+                map(int, tokens)
+
+                if self.lcount == self.hap_header + 6:
+                    if len(tokens) != 5:
+                        return False
+                    return None
+
+                if self.hap_header + 6 < self.lcount < self.hap_header + 16:
+                    if len(tokens) != 6:
+                        return False
+                    return None
+
+        return None
+
+                    
+
+                    
 
 if __name__ == '__main__':
     import doctest
