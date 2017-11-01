@@ -633,13 +633,11 @@
     <datatype extension="pttgf" type="galaxy.datatypes.plant_tribes:PlantTribesTargetedGeneFamilies" />
     <datatype extension="pttree" type="galaxy.datatypes.plant_tribes:PlantTribesPhylogeneticTree" />
     <datatype extension="smat" type="galaxy.datatypes.plant_tribes:Smat" display_in_upload="true" />
-
     <!-- Start Haplotype / LOD Datatypes -->
     <datatype extension="alohomora_gts" type="galaxy.datatypes.genetics:GenotypeMatrix" />
     <datatype extension="alohomora_map" type="galaxy.datatypes.genetics:AlohomoraMarkerMap" />
     <datatype extension="alohomora_maf" type="galaxy.datatypes.genetics:AlohomoraMAF" />
     <datatype extension="alohomora_ped" type="galaxy.datatypes.genetics:Pedfile" />
-
     <!-- Common input formats -->
     <datatype extension="linkage_datain" type="galaxy.datatypes.genetics:DataIn" />
     <datatype extension="linkage_pedin"  type="galaxy.datatypes.genetics:PreMakePed" />
