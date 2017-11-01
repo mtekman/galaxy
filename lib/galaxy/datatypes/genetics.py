@@ -832,6 +832,15 @@ class LinkageStudies(Text):
     """
     superclass for classical linkage analysis suites
     """
+    test_files = [
+        'allegro_descent', 'allegro_fparam', 'allegro_ihaplo',
+        'alohomora_gts', 'alohomora_maf', 'alohomora_map', 'alohomora_ped',
+        'ghm_haplo', 'ghm_lod',
+        'linkage_datain', 'linkage_map', 'linkage_pedin',
+        'merlin_chr', 'merlin_flow', 'merlin_lod',
+        'simwalk_hef', 'swift_lod'
+    ]
+
     def __init__(self,**kwd):
         super(**kwd)
         self.lcount = 0
@@ -874,7 +883,25 @@ class LinkageStudies(Text):
 
 
     def sniff(self, filename):
+        """
+        >>> from galaxy.datatypes.sniff import get_test_fname
+        >>> cname = self.__class__.__name__
+        >>> file_true = "linkstudies." + eval(cname)().file_ext
+        >>> fname = get_test_fname(file_true)
+        >>> eval(cname)().sniff(fname)
+        True
 
+
+        >>> result_array = []
+        >>> for file_false in LinkageStudies.test_files:
+        >>>     fname = get_test_fname("linkstudies." + file_false)
+        >>>     if fname != file_true:
+        >>>         res = eval(cname)().sniff(fname)
+        >>>         result_array.push(res)
+        >>>
+        >>> set(result_array)
+        {False}
+        """
         with open(filename, "r") as fio:
 
             if self._isBinaryFile(fio):
@@ -1172,12 +1199,6 @@ class AllegroHaplo(PreMakePed):
     Allegro output format for phased haplotypes
     """
     file_ext = "allegro_ihaplo"
-
-    def sniff(self):
-        """
-        tests
-        """
-        super(Allegro_Haplo, self).sniff()
 
     def header_check(self, fio):
         header = []
