@@ -899,7 +899,7 @@ class PreMakePed(LinkageStudies):
     Extended linkage pedigree file containing:
          pedigree_id, individ_id, fath_id, moth_id, gender, affectation, [genotypes]
     """
-    file_ext = "pedin"
+    file_ext = "linkage_pedin"
 
     def __init__(self, **kwd):
         super(**kwd)
@@ -933,7 +933,7 @@ class Pedfile(PreMakePed):
        - individuals specified on a single line
        - no genotype data
     """
-    file_ext = "ped"
+    file_ext = "alohmora_ped"
 
     def __init__(self, **kwd):
         super(**kwd)
@@ -945,7 +945,7 @@ class GenotypeMatrix(LinkageStudies):
     Sample matrix of genotypes
     - GTs as columns
     """
-    file_ext = "gt_map"
+    file_ext = "alohmora_gts"
 
     def __init__(self, **kwd):
         super(**kwd)
@@ -985,7 +985,7 @@ class MarkerMap(LinkageStudies):
 
     chrom, genetic pos, markername, physical pos, Nr
     """
-    file_ext = "mm"
+    file_ext = "linkage_map"
 
     def __init__(self, **kwd):
         super(**kwd)
@@ -1028,7 +1028,7 @@ class AlohomoraMarkerMap(LinkageStudies):
 
     chrom, markername, genetic pos, physical pos, markername, "x"
     """
-    file_ext = "amm"
+    file_ext = "alohomora_map"
 
     def __init__(self, **kwd):
         super(**kwd)
@@ -1068,11 +1068,11 @@ class AlohomoraMarkerMap(LinkageStudies):
         return None
 
 
-class MAF(LinkageStudies):
+class AlohomoraMAF(LinkageStudies):
     """
     Minor Allele Frequencies of marker lists
     """
-    file_ext = "maf"
+    file_ext = "alohomora_maf"
 
     def __init__(self,**kwd):
         super(**kwd)
@@ -1108,7 +1108,7 @@ class DataIn(LinkageStudies):
     Common linkage input file for intermarker distances
     and recombination rates
     """
-    file_ext = "datain"
+    file_ext = "linkage_datain"
 
     def __init__(self, **kwd):
         super(**kwd)
@@ -1163,7 +1163,7 @@ class AllegroDescent(AllegroHaplo):
     """
     Allegro output format for founder allele groups
     """
-    file_ext = "founder"
+    file_ext = "allegro_descent"
 
     
 
@@ -1171,7 +1171,7 @@ class AllegroHaplo(PreMakePed):
     """
     Allegro output format for phased haplotypes
     """
-    file_ext = "ihaplo"
+    file_ext = "allegro_ihaplo"
 
     def sniff(self):
         """
@@ -1204,7 +1204,7 @@ class AllegroLOD(LinkageStudies):
     """
     Allegro output format for LOD scores
     """
-    file_ext = "fparam"
+    file_ext = "allegro_fparam"
 
     def header_check(self, fio):
         header = fio.readline().splitlines()[0].split()
@@ -1264,7 +1264,7 @@ class GHMHaplo(LinkageStudies):
     """
     Genehunter output phased haplotypes
     """
-    file_ext = "ghmhaplo"
+    file_ext = "ghm_haplo"
 
     def header_check(self, fio):
         self.num_markers = -1
@@ -1296,7 +1296,7 @@ class GHMLOD(LinkageStudies):
     """
     Genehunter output file for parametric LOD
     """
-    file_ext = "ghmlod"
+    file_ext = "ghm_lod"
 
     def __init__(self, **kwd):
         super(**kwd)
@@ -1330,7 +1330,7 @@ class MerlinLOD(GHMLOD):
     """
     Merlin output file for parametric LOD
     """
-    file_ext = "merlinlod"
+    file_ext = "merlin_lod"
 
     def __init__(self, **kwd):
         super(**kwd)
@@ -1344,7 +1344,7 @@ class MerlinChr(LinkageStudies):
     """
     Merlin output file for phased haplotypes
     """
-    file_ext = "merlinchr"
+    file_ext = "merlin_chr"
 
     def __init__(self, **kwd):
         super(**kwd)
@@ -1389,7 +1389,7 @@ class MerlinHaplo(MerlinChr):
     """
     Merlin output file for descent data (founder allele groups)
     """
-    file_ext = "merlinflow"
+    file_ext = "merlin_flow"
 
     def internalLineOp(self, alleles):
         try:
@@ -1406,7 +1406,7 @@ class SwiftLOD(LinkageStudies):
     """
     Swiftlink output LOD file
     """
-    file_ext = "swift"
+    file_ext = "swift_lod"
 
     def header_check(self, fio):
         return fio.readline().startswith("marker  position        lod")
@@ -1438,12 +1438,12 @@ class SwiftLOD(LinkageStudies):
         return None
 
 
-class Mega2HEF(LinkageStudies):
+class SimwalkHEF(LinkageStudies):
     """
-    Mega2 Simwalk output file. Contains LOD, phased haplotypes, 
+    Simwalk output HEF file. Contains LOD, phased haplotypes,
     and founder groups
     """
-    file_ext = "hef"
+    file_ext = "simwalk_hef"
 
     def __init__(self, **kwd):
         self.lod_header = -1
