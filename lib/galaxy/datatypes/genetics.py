@@ -1402,6 +1402,42 @@ class MerlinHaplo(MerlinChr):
         return None
 
 
+class SwiftLOD(LinkageStudies):
+    """
+    Swiftlink output LOD file
+    """
+    file_ext = "swift"
+
+    def header_check(self, fio):
+        return fio.readline().startswith("marker  position        lod")
+
+    def lineOp(self, line):
+
+        tokens = LinkageStudies.tokenizer(line)
+
+        if tokens[0] == "-":
+            if len(tokens) != 3:
+                return False
+
+            try:
+                float(tokens[1]); float(tokens[2])
+            except ValueError:
+                return False
+
+            return None
+
+        # marker name
+        if len(tokens) != 2:
+            return False
+
+        try:
+            float(tokens[1])
+        except ValueError:
+            return False
+
+        return None
+
+
 class Mega2HEF(LinkageStudies):
     """
     Mega2 Simwalk output file. Contains LOD, phased haplotypes, 
