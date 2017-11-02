@@ -1,5 +1,5 @@
 #!/usr/bin/env python2
-
+from bisect import bisect
 
 class Converter:
 
@@ -111,12 +111,47 @@ class Genehunter(Converter):
             print >> sys.stderr, "even number of elements"
             exit(-1)
         
-        cumulative_lod = 0
-        for e in range(len(pos_pairs)):
-            elem = pos_pairs[e]
+        pos_rsid = smap()
+        cum_pos = 0
+        ein = 0
+        while ein < len(pos_pairs) - 1:
+            marker = pos_pairs[ein]
+            positn = float(pos_pairs[ein+1])
+
+            pos_rsid[cum_pos] = marker
+
+            cum_pos += positn
+            ein += 2
+
+        pos_rsid[cum_pos] = pos_pairs[-1]
+
+        # Produce sorted list of gpos
+        pos_rsid_array = sorted(pos_rsid.keys())
+        pos_lod_array  = sorted(pos_lod.keys())
+
+        keys_to_annotate = {}
+
+        for marker_pos in pos_rsid_array:
+            marker = pos_rsid[marker_pos]
+            lm_ind = bisect_left(pos_lod_array, marker_pos)
+            lm_pos = pos_lod_array[lm_ind - 1]
+
+            if lm_pos not in keys_to_annotate:
+                keys_to_annotate[lm_pos] = marker
+            else:
+                if marker_pos - 
+
+                
             
-            if e % 2 == 0:
-                # marker
+
+        # Produce fam, loc, lod, marker
+        ke
+        
+
+            
+            
+            
+                
                 
                 
             
