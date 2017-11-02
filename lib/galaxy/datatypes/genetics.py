@@ -843,7 +843,7 @@ class LinkageStudies(Text):
     ]
 
     def __init__(self, **kwd):
-        Text.__init__(**kwd)
+        Text.__init__(self, **kwd)
         self.lcount = 0
         self.max_lines = 2000
         # iterate whole file without errors
@@ -899,6 +899,7 @@ class LinkageStudies(Text):
         """
         return True
 
+
     def sniff(self, filename):
         """
         >>> from galaxy.datatypes.sniff import get_test_fname
@@ -945,7 +946,7 @@ class PreMakePed(LinkageStudies):
     file_ext = "linkage_pedin"
 
     def __init__(self, **kwd):
-        LinkageStudies.__init__(**kwd)
+        LinkageStudies.__init__(self, **kwd)
         self.num_colns = None
         self.max_lines = 1000
 
@@ -978,7 +979,7 @@ class Pedfile(PreMakePed):
     file_ext = "alohomora_ped"
 
     def __init__(self, **kwd):
-        PreMakePed.__init__(**kwd)
+        PreMakePed.__init__(self, **kwd)
         self.num_colns = 6
 
 
@@ -990,7 +991,7 @@ class GenotypeMatrix(LinkageStudies):
     file_ext = "alohomora_gts"
 
     def __init__(self, **kwd):
-        LinkageStudies.__init__(**kwd)
+        LinkageStudies.__init__(self, **kwd)
         # modern GT chipsets max at 5M
         self.max_lines = 5000000
         self.num_cols = -1
@@ -1030,7 +1031,7 @@ class MarkerMap(LinkageStudies):
     file_ext = "linkage_map"
 
     def __init__(self, **kwd):
-        LinkageStudies.__init__(**kwd)
+        LinkageStudies.__init__(self, **kwd)
         # sensible linkage should not exceed more than 500,000 markers
         self.max_lines = 500000
 
@@ -1071,7 +1072,7 @@ class AlohomoraMarkerMap(LinkageStudies):
     file_ext = "alohomora_map"
 
     def __init__(self, **kwd):
-        LinkageStudies.__init__(**kwd)
+        LinkageStudies.__init__(self, **kwd)
         # sensible linkage should not exceed more than 500,000 markers
         self.max_lines = 500000
 
@@ -1112,7 +1113,7 @@ class AlohomoraMAF(LinkageStudies):
     file_ext = "alohomora_maf"
 
     def __init__(self, **kwd):
-        LinkageStudies.__init__(**kwd)
+        LinkageStudies.__init__(self, **kwd)
         self.max_lines = 5000000
 
     def header_check(self, fio):
@@ -1147,7 +1148,7 @@ class DataIn(LinkageStudies):
     file_ext = "linkage_datain"
 
     def __init__(self, **kwd):
-        LinkageStudies.__init__(**kwd)
+        LinkageStudies.__init__(self, **kwd)
         self.num_markers = None
         self.intermarkers = 0
 
@@ -1267,7 +1268,7 @@ class AllegroSetup(LinkageStudies):
     file_ext = "allegro_in"
 
     def __init__(self, **kwd):
-        LinkageStudies.__init__(**kwd)
+        LinkageStudies.__init__(self, **kwd)
         self.max_lines = 100
         self.find_line = {
             'PREFILE': False,
@@ -1294,7 +1295,7 @@ class GHMHaplo(LinkageStudies):
     file_ext = "ghm_haplo"
 
     def __init__(self, **kwd):
-        LinkageStudies.__init__(**kwd)
+        LinkageStudies.__init__(self, **kwd)
         self.num_markers = -1
 
     def header_check(self, fio):
@@ -1326,7 +1327,7 @@ class GHMLOD(LinkageStudies):
     file_ext = "ghm_lod"
 
     def __init__(self, **kwd):
-        LinkageStudies.__init__(**kwd)
+        LinkageStudies.__init__(self, **kwd)
         self.lod_header = -1
         self.eof_res = False
         self.lin_fin = "position  LOD score    NPL score  p-value"
@@ -1359,7 +1360,7 @@ class MerlinLOD(GHMLOD):
     file_ext = "merlin_lod"
 
     def __init__(self, **kwd):
-        GHMLOD.__init__(**kwd)
+        GHMLOD.__init__(self, **kwd)
         self.lin_fin = "       POSITION        LOD      ALPHA       HLOD"
 
     def header_check(self, fio):
@@ -1373,7 +1374,7 @@ class MerlinChr(LinkageStudies):
     file_ext = "merlin_chr"
 
     def __init__(self, **kwd):
-        LinkageStudies.__init__(**kwd)
+        LinkageStudies.__init__(self, **kwd)
         self.indiv_line = -1
 
     def header_check(self, fio):
@@ -1477,7 +1478,7 @@ class SimwalkHEF(LinkageStudies):
     file_ext = "simwalk_hef"
 
     def __init__(self, **kwd):
-        LinkageStudies.__init__(**kwd)
+        LinkageStudies.__init__(self, **kwd)
         self.lod_header = -1
         self.hap_header = -1
 
