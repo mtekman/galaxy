@@ -929,7 +929,7 @@ class LinkageStudies(Text):
             for line in fio:
                 line_res = self.__per_line_op(line)
 
-                if line_res != None:
+                if line_res is not None:
                     return line_res
 
             return self.eof_function()
@@ -940,7 +940,7 @@ class PreMakePed(LinkageStudies):
     """
     Common linkage pedin format
     Extended linkage pedigree file containing:
-         pedigree_id, individ_id, fath_id, moth_id, gender, affectation, [genotypes]
+         fam, indiv, fath, moth, gender, affectation, [genotypes]
     """
     file_ext = "linkage_pedin"
 
@@ -1008,7 +1008,6 @@ class GenotypeMatrix(LinkageStudies):
             return False
 
         return None
-
 
     def header_check(self, fio):
         header_elems = fio.readline().splitlines()[0].strip().split('\t')
@@ -1117,7 +1116,7 @@ class AlohomoraMAF(LinkageStudies):
         self.max_lines = 5000000
 
     def header_check(self, fio):
-        fio.readline() # seek ahead
+        fio.readline()
         return True
 
     def line_op(self, line):
@@ -1238,10 +1237,10 @@ class AllegroLOD(LinkageStudies):
 
     def header_check(self, fio):
         header = fio.readline().splitlines()[0].split()
-        if not(header[0] == "family"
-               and header[1] == "location"
-               and header[2] == "LOD"
-               and header[3] == "marker"):
+        if not(header[0] == "family" and
+               header[1] == "location" and
+               header[2] == "LOD" and
+               header[3] == "marker"):
             return False
         return True
 
@@ -1271,9 +1270,9 @@ class AllegroSetup(LinkageStudies):
         LinkageStudies.__init__(**kwd)
         self.max_lines = 100
         self.find_line = {
-            'PREFILE' : False,
-            'DATFILE' : False,
-            'MODEL' : False
+            'PREFILE': False,
+            'DATFILE': False,
+            'MODEL': False
         }
         self.eof_res = False
 
@@ -1300,7 +1299,6 @@ class GHMHaplo(LinkageStudies):
 
     def header_check(self, fio):
         return fio.readline().startswith("*****")
-
 
     def line_op(self, line):
         tokens = LinkageStudies.tokenizer(line)
@@ -1331,7 +1329,7 @@ class GHMLOD(LinkageStudies):
         LinkageStudies.__init__(**kwd)
         self.lod_header = -1
         self.eof_res = False
-        self.lin_fin = "position  LOD score    NPL score  p-value    information"
+        self.lin_fin = "position  LOD score    NPL score  p-value"
 
     def line_op(self, line):
 
@@ -1397,7 +1395,6 @@ class MerlinChr(LinkageStudies):
 
         return None
 
-
     def line_op(self, line):
 
         if line.contains("(F)") or line.contains("(M)"):
@@ -1407,9 +1404,9 @@ class MerlinChr(LinkageStudies):
         if self.indiv_line != -1:
             if self.indiv_line < self.lcount <= self.indiv_line + 20:
                 tokens = LinkageStudies.tokenizer(line)
-                alleles = filter(
-                    [alle for alle in tokens if alle not in ('?', ':', ',', '|')]
-                )
+                alleles = filter([
+                    alle for alle in tokens if alle not in ('?', ':', ',', '|')
+                ])
 
                 return self.__internal_line_op(alleles)
 
@@ -1424,7 +1421,9 @@ class MerlinHaplo(MerlinChr):
 
     def __internal_line_op(self, alleles):
         try:
-            if set(map([alle for alle in alleles if ord(alle) in range(65, 90)])) != {True}:
+            if set(map([
+                    alle for alle in alleles if ord(alle) in range(65, 90)
+            ])) != {True}:
                 return False
 
         except ValueError:
@@ -1490,11 +1489,11 @@ class SimwalkHEF(LinkageStudies):
 
     def line_op(self, line):
 
-        if line.startswith("Marker  Map: Haldane-cM  Number of  Allele Names and"):
+        if line.startswith("Marker  Map: Haldane-cM  Number of  Allele Names"):
             self.hap_header = -1
             self.lod_header = self.lcount
 
-        elif line.startswith("Num. of Individuals                             Pheno"):
+        elif line.startswith("Num. of Individuals                           "):
             self.hap_header = self.lcount
             self.lod_header = -1
 
@@ -1523,7 +1522,6 @@ class SimwalkHEF(LinkageStudies):
                         int(tokens[2])
                         float(tokens[3])
 
-
             elif self.hap_header != -1:
                 tokens = LinkageStudies.tokenizer(line)
                 map(int, tokens)
@@ -1532,8 +1530,10 @@ class SimwalkHEF(LinkageStudies):
                 if self.lcount == self.hap_header + 6 and len(tokens) != 5:
                     return False
 
-                elif ((self.hap_header + 6 < self.lcount < self.hap_header + 16)
-                      and len(tokens) != 6):
+                elif ((self.hap_header + 6 <
+                       self.lcount <
+                       self.hap_header + 16) and
+                      len(tokens) != 6):
                     return False
 
         except ValueError:
