@@ -859,13 +859,11 @@ class LinkageStudies(Text):
 
         return line.splitlines()[0].split(sep)
 
-
     def eof_function(self):
         """
         Overridable end-of-file function
         """
         return self.eof_res
-
 
     @staticmethod
     def __is_binary_file(fstream):
@@ -879,7 +877,6 @@ class LinkageStudies(Text):
         fstream.seek(0)
         return result
 
-
     def __per_line_op(self, line):
         """
         Private per-line operation and line counter
@@ -890,20 +887,17 @@ class LinkageStudies(Text):
 
         return self.line_op(line)
 
-
     def line_op(self, line):
         """
         Overridable per line operation
         """
         return None
 
-
     def header_check(self, fio):
         """
         Overrideable post-binary file check function
         """
         return True
-
 
     def sniff(self, filename):
         """
@@ -913,7 +907,6 @@ class LinkageStudies(Text):
         >>> fname = get_test_fname(file_true)
         >>> eval(cname)().sniff(fname)
         True
-
 
         >>> result_array = []
         >>> for file_false in LinkageStudies.test_files:
@@ -955,7 +948,6 @@ class PreMakePed(LinkageStudies):
         LinkageStudies.__init__(**kwd)
         self.num_colns = None
         self.max_lines = 1000
-
 
     def line_op(self, line):
 
@@ -1043,7 +1035,6 @@ class MarkerMap(LinkageStudies):
         # sensible linkage should not exceed more than 500,000 markers
         self.max_lines = 500000
 
-
     def header_check(self, fio):
         headers = fio.readline().split()
 
@@ -1051,7 +1042,6 @@ class MarkerMap(LinkageStudies):
             return True
 
         return False
-
 
     def line_op(self, line):
 
@@ -1086,7 +1076,6 @@ class AlohomoraMarkerMap(LinkageStudies):
         # sensible linkage should not exceed more than 500,000 markers
         self.max_lines = 500000
 
-
     def header_check(self, fio):
         headers = fio.readline().split()
 
@@ -1095,9 +1084,7 @@ class AlohomoraMarkerMap(LinkageStudies):
 
         return False
 
-
     def line_op(self, line):
-
         try:
             chrm, nam1, gpos, bpos, nam2, junk = LinkageStudies.tokenizer(line)
 
@@ -1132,7 +1119,6 @@ class AlohomoraMAF(LinkageStudies):
     def header_check(self, fio):
         fio.readline() # seek ahead
         return True
-
 
     def line_op(self, line):
         tokens = line.split()
@@ -1259,7 +1245,6 @@ class AllegroLOD(LinkageStudies):
             return False
         return True
 
-
     def line_op(self, line):
         tokens = LinkageStudies.tokenizer(line)
 
@@ -1336,8 +1321,6 @@ class GHMHaplo(LinkageStudies):
         return None
 
 
-
-
 class GHMLOD(LinkageStudies):
     """
     Genehunter output file for parametric LOD
@@ -1371,7 +1354,6 @@ class GHMLOD(LinkageStudies):
         return None
 
 
-
 class MerlinLOD(GHMLOD):
     """
     Merlin output file for parametric LOD
@@ -1396,10 +1378,8 @@ class MerlinChr(LinkageStudies):
         LinkageStudies.__init__(**kwd)
         self.indiv_line = -1
 
-
     def header_check(self, fio):
         return fio.readline().split()[0] == "FAMILY"
-
 
     def __internal_line_op(self, alleles):
         """
@@ -1432,7 +1412,6 @@ class MerlinChr(LinkageStudies):
                 )
 
                 return self.__internal_line_op(alleles)
-
 
         return None
 
@@ -1503,13 +1482,11 @@ class SimwalkHEF(LinkageStudies):
         self.lod_header = -1
         self.hap_header = -1
 
-
     def header_check(self, fio):
         return fio.readline().split()[0] == "HEF"
 
     def eof_function(self):
         return self.lod_header != -1 or self.hap_header != -1
-
 
     def line_op(self, line):
 
@@ -1520,7 +1497,6 @@ class SimwalkHEF(LinkageStudies):
         elif line.startswith("Num. of Individuals                             Pheno"):
             self.hap_header = self.lcount
             self.lod_header = -1
-
 
         try:
             if self.lod_header != -1:
@@ -1556,14 +1532,14 @@ class SimwalkHEF(LinkageStudies):
                 if self.lcount == self.hap_header + 6 and len(tokens) != 5:
                     return False
 
-                elif (self.hap_header + 6 < self.lcount < self.hap_header + 16) and len(tokens) != 6:
+                elif ((self.hap_header + 6 < self.lcount < self.hap_header + 16)
+                      and len(tokens) != 6):
                     return False
 
         except ValueError:
             return False
 
         return None
-
 
 
 if __name__ == '__main__':
