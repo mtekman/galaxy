@@ -711,7 +711,6 @@
     <sniffer type="galaxy.datatypes.binary:Fast5ArchiveGz" />
     <sniffer type="galaxy.datatypes.binary:Fast5ArchiveBz2" />
     <sniffer type="galaxy.datatypes.binary:Fast5Archive" />
-<<<<<<< HEAD
     <sniffer type="galaxy.datatypes.genetics:GenotypeMatrix" />
     <sniffer type="galaxy.datatypes.genetics:AlohomoraMarkerMap" />
     <sniffer type="galaxy.datatypes.genetics:AlohomoraMAF" />
@@ -729,10 +728,8 @@
     <sniffer type="galaxy.datatypes.genetics:MerlinLOD" />
     <sniffer type="galaxy.datatypes.genetics:SimwalkHEF" />
     <sniffer type="galaxy.datatypes.genetics:SwiftLOD" />
-=======
     <sniffer type="galaxy.datatypes.binary:PostgresqlArchive"/>
     <sniffer type="galaxy.datatypes.annotation:Augustus" />
->>>>>>> 6b68c5d10ebbb5ad82a70e34aae852fa00fab1b0
     <sniffer type="galaxy.datatypes.triples:Rdf"/>
     <sniffer type="galaxy.datatypes.blast:BlastXml"/>
     <sniffer type="galaxy.datatypes.xml:Phyloxml"/>
