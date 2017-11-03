@@ -114,6 +114,9 @@ class Simwalk(Converter):
     def __init__(self, pedigree, mapfile, hef):
         super(self, pedigree, mapfile)
 
+
+    def extractLOD(
+
         
 
 
