@@ -1,29 +1,31 @@
-#1;5001;0c#!/usr/bin/env python2
+#!/usr/bin/env python2
 from bisect import bisect_left
-import sys
+from getopt import getopt
+from sys import stderr, argv
 
 class Converter:
     """
     Superclass for converting formats
     """
-    haplo_individual_buffer = "%5d %5d %5d %5d %2d %2d "
-    lod_line_buffer = "%8s %8s %8s %8s %-s"
+    haplo_individual_buffer = "%-8d %8d %8d %8d %2d %2d  "
+    lod_line_buffer = "%8s %12s %8s %8s  %-s"
 
     def __init__(self, pedin, mapin):
         self.out_lod = "linkage.allegro_lod"
         self.out_haplo = "linkage.allegro_haplo"
         self.out_descent = "linkage.allegro_descent"
 
-        self.haplo_map = {}  # fam_id → indiv_id → (all1,all2)
-        self.pos_marker = {} # genpos → marker
+        self.haplo_map = {}  # fam_id -> indiv_id -> (all1,all2)
+        self.pos_marker = {} # genpos -> marker
         self.marker_order = []
         self.lod_array = []
+        self.pedigree = {}
 
         self.__populatePedigree(pedin)
         self.__populateMarkerMap(mapin)
 
 
-    def __populatePedigree(input_ped):
+    def __populatePedigree(self, input_ped):
         with open(input_ped, "r") as pio:
             for line in pio:
                 tokens = map(int, line.split())
@@ -34,11 +36,10 @@ class Converter:
                 if p_id not in self.pedigree:
                     self.pedigree[f_id][p_id] = (father, mother, gender, affect)
                 else:
-                    print >> sys.stderr, "Duplicate individual:", f_id, p_id
+                    print >> stderr, "Duplicate individual:", f_id, p_id
                     exit(-1)
 
-
-    def __populateMarkerMap(mapin):
+    def __populateMarkerMap(self, mapin):
         with open(mapin, "r") as mio:
             mio.readline() # chomp header
 
@@ -50,6 +51,7 @@ class Converter:
 
 
     def __annotateClosestMarker(self, pos_lod):
+
         # Produce sorted list of gpos
         pos_rsid_array = sorted(self.pos_marker.keys())
         pos_lod_array = sorted(pos_lod.keys())
@@ -71,7 +73,7 @@ class Converter:
             if lm_pos not in keys_to_annotate:
                 keys_to_annotate[lm_pos] = marker
             else:
-                diff2 = marker_pos - keys_to_annotate[lm_pos]
+                diff2 = marker_pos - lm_pos
                 diff2 = diff2 if diff2 > 0 else -diff2
 
                 if diff1 < diff2:
@@ -80,8 +82,10 @@ class Converter:
 
         return keys_to_annotate, pos_lod_array
 
-    def __makeLODArray(self, pos_lod):
+
+    def makeLODArray(self, pos_lod):
         postns_with_closest_markers, sorted_poslod = self.__annotateClosestMarker(pos_lod)
+
         # update map with marker info
         for pos in sorted_poslod:
             marker = ""
@@ -90,6 +94,7 @@ class Converter:
 
             lod, alpha, hlod = pos_lod[pos]
             self.lod_array.append((pos, lod, alpha, hlod, marker))
+
 
     def __generateHeaders(self, npad_left = 10):
         marker_order = self.marker_order
@@ -132,7 +137,7 @@ class Converter:
         header = Converter.lod_line_buffer % (
             "location", "LOD", "alpha", "HLOD", "marker"
         )
-        print(header, file=out_lod)
+        print >> out_lod, header
 
         for pos, lod, alpha, hlod, marker in self.lod_array:
             out_line = Converter.lod_line_buffer % (
@@ -142,36 +147,40 @@ class Converter:
                 "%.4f" % hlod,
                 marker
             )
-            print(out_line, file=out_lod)
+            print >> out_lod, out_line
         out_lod.close()
+        print >> stderr, "Wrote: ", out_lod.name
 
     def writeDescent(self):
         self.writeHaplo(True)
 
     def writeHaplo(self, descent=False):
+        out_haplo = open(self.out_haplo if not descent else self.out_descent, "w")
 
-        out_haplo = open(self.out_haplo, "w")
-
-        dummy_l = Converter.haplo_individual_buffer % range(6)
+        dummy_l = Converter.haplo_individual_buffer % (1,1,1,1,1,1) # *range(6) (unpack in py3 only...)
         headers = self.__generateHeaders(len(dummy_l)) + '\n'
-        print(headers, file=out_haplo)
+        print >> out_haplo, headers
 
         for fam_id in self.haplo_map:
             for indiv_id in self.haplo_map[fam_id]:
                 alleles = self.haplo_map[fam_id][indiv_id]
                 ped_data = self.pedigree[fam_id][indiv_id]
-                #father, mother, gender, affect = ped_data
+                father, mother, gender, affect = ped_data
 
                 indiv_data = Converter.haplo_individual_buffer % (
-                    fam_id, indiv_id, *ped_data
+                    fam_id, indiv_id, father, mother, gender, affect
                 )
 
-                print(indiv_data, alleles[0], file=out_haplo)
-                print(indiv_data, alleles[0], file=out_haplo)
+                print >> out_haplo, indiv_data + "  ".join(map(str,alleles[0]))
+                print >> out_haplo, indiv_data + "  ".join(map(str,alleles[1]))
         out_haplo.close()
-    
+        print >> stderr, "Wrote: ", out_haplo.name
+
 
 class Swiftlink(Converter):
+
+    def __init__(self, pedin, mapin):
+        super(pedin, mapin)
 
     def extractLOD(self, lodfile):
         pos_lod = {}
@@ -205,7 +214,7 @@ class Merlin(Converter):
         def flushTmpData(tmp):
             # finish populating alleles
             if len(tmp[1]) != len(tmp[2]):
-                print >> sys.stderr, "length mismatch"
+                print >> stderr, "length mismatch"
                 exit(-1)
 
             for tpa in range(len(tmp[1])):
@@ -268,7 +277,7 @@ class Merlin(Converter):
                 multiple_alleles = [x.strip() for x in trimmed.split("   ") if x.strip()!=""]
 
                 if len(multiple_alleles) != len(tmp[1]):
-                    print >> sys.stderr, "Num alleles and num percs mismatch"
+                    print >> stderr, "Num alleles and num percs mismatch"
                     exit(-1)
 
                 for a in len(multiple_alleles):
@@ -322,7 +331,7 @@ class Merlin(Converter):
 class Simwalk(Converter):
 
     def extractHaploAndDescent(self, hef):
-        
+
         tmp = {
             "_fam"  : None,
             "_perc" : None,
@@ -344,8 +353,8 @@ class Simwalk(Converter):
                 tmpdat["_allpat"] = []
                 tmpdat["_decmat"] = []
                 tmpdat["_decpat"] = []
-        
-        
+
+
         dashedlines_found = False
 
         for line in hio:
@@ -382,9 +391,9 @@ class Simwalk(Converter):
     def extractLOD(self, scorefile):
 
         pos_lod = {}
-        
+
         with open(scorefile, 'r') as sio:
-            
+
             line = sio.readline()
             while not line.startswith(" NAME  , Haldane cM ,   alpha=1.00   ,"):
                 line = sio.readline()
@@ -401,12 +410,6 @@ class Simwalk(Converter):
                 pos_lod[gpos] = (lod, 1, hlod)
 
         self.__makeLODArray(pos_lod)
-                
-
-
-                
-                            
-
 
 
 class Genehunter(Converter):
@@ -418,38 +421,46 @@ class Genehunter(Converter):
 
             try:
                 while True:
+                    line = hio.readline()
+                    fam_id = int(line.split()[1])
+
+                    if fam_id not in self.haplo_map:
+                        self.haplo_map[fam_id] = {}
+
+                    line = ""
+
                     while not line.startswith("*****"):
-                        line = hio.readline()
-                        fam_id = int(line.split()[1])
-
-                        if fam_id not in self.indiv_map:
-                            self.haplo_map[fam_id] = {}
-
-                    while not line.startswith(" "):
                         line = hio.readline()
                         indiv_all1 = map(int, line.split())
                         line = hio.readline()
                         indiv_all2 = map(int, line.split())
 
-                        indiv_id = indiv_all1[0]
+                        if indiv_all1 == [] and indiv_all2 == []:
+                            return True
 
+                        indiv_id = int(indiv_all1[0])
+                           
                         if len(indiv_all1) != len(indiv_all2) + 4:
-                            print >> sys.stderr, "Allele mismatch for indiv", fam_id, indiv_id
+                            print >> stderr, "Allele mismatch for indiv", fam_id, indiv_id
                             exit(-1)
 
-                        self.haplo_map[fam_id][indiv_id] = (indiv_all1[4:], indiv_all2)
+                        self.haplo_map[fam_id][indiv_id] = (
+                            indiv_all1[4:],
+                            indiv_all2
+                        )
             except IOError:
                 hio.close()
+                return True
+
 
 
     def extractLOD(self, file):
 
-        pos_lod = {}  # pos → lod
+        pos_lod = {}  # pos -> lod
         gt_line = ""
         num_peds = 0
 
         with open(file, 'r') as fio:
-
             # Jump to marker positions
             line = ""
             while not line.startswith("Current map ("):
@@ -471,7 +482,10 @@ class Genehunter(Converter):
                 line = fio.readline()
 
             # Extract lod
-            while not line.startswith(" "):
+            line = fio.readline()
+
+            while len(line) != 1:
+                #print len(line), line
                 gpos, lod, alpha, hlod, npl, pval, info = Converter.tokenizer(line)
                 gpos = float(gpos)
 
@@ -479,11 +493,8 @@ class Genehunter(Converter):
                     lod = -10000
                 lod = float(lod)
 
-                alpha = float(alpha.split("(")[-1])
-                hlod = float(hlod.split(")")[0])
-
-                #npl = float(npl)
-                #pval = float(pval)
+                alpha = float(alpha.split("(")[-1].split(",")[0])
+                hlod  = float(hlod.split(")")[0])
 
                 # insert
                 if gpos not in pos_lod:
@@ -494,6 +505,55 @@ class Genehunter(Converter):
                     if lod > old_lod:
                         pos_lod[gpos][0] = lod
 
+                line = fio.readline()
             fio.close()
 
-        self.__makeLODArray(pos_lod)
+        self.makeLODArray(pos_lod)
+
+
+if __name__ == "__main__":
+
+    def help():
+        print >> stderr, '''%s <pedin> <mapin> <PROGRAM> [OPTIONS]
+
+PROGRAM:  genehunter, merlin, simwalk, swiftlink
+OPTIONS:
+    -l lodfile
+    -h haplofile
+    -d descentfile
+''' % argv[0]
+        exit(-1)
+
+    opts, rem = getopt(argv[4:], "-l:-h:-d")
+
+    if len(argv) < 3:
+        help()
+
+    pedin, mapin, program = argv[1:4]
+    opts = dict(opts)
+
+    obj = None
+    if program == "genehunter":
+        obj = Genehunter(pedin, mapin)
+    elif program == "merlin":
+        obj = Merlin(pedin, mapin)
+    elif program == "simwalk":
+        obj = Simwalk(pedin, mapin)
+    elif program == "swiftlink":
+        obj = Swiftlink(pedin, mapin)
+    else:
+        print >> stderr, "Nuts! No such prog:", program
+        help()
+        exit(-1)
+
+    if '-l' in opts:
+        obj.extractLOD(opts['-l'])
+        obj.writeLOD()
+
+    if '-h' in opts:
+        obj.extractHaplo(opts['-h'])
+        obj.writeHaplo()
+
+    if '-d' in opts:
+        obj.extractDescent(opts['-d'])
+        obj.writeDescent()
