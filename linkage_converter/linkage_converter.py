@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#1;5001;0c#!/usr/bin/env python2
 from bisect import bisect_left
 import sys
 
@@ -6,7 +6,7 @@ class Converter:
     """
     Superclass for converting formats
     """
-    haplo_individual_buffer = "%5d %5d %5d %5d %2d %2d"
+    haplo_individual_buffer = "%5d %5d %5d %5d %2d %2d "
     lod_line_buffer = "%8s %8s %8s %8s %-s"
 
     def __init__(self, pedin, mapin):
@@ -16,7 +16,8 @@ class Converter:
 
         self.haplo_map = {}  # fam_id → indiv_id → (all1,all2)
         self.pos_marker = {} # genpos → marker
-        self.marker_order = [] 
+        self.marker_order = []
+        self.lod_array = []
 
         self.__populatePedigree(pedin)
         self.__populateMarkerMap(mapin)
@@ -79,9 +80,19 @@ class Converter:
 
         return keys_to_annotate, pos_lod_array
 
+    def __makeLODArray(self, pos_lod):
+        postns_with_closest_markers, sorted_poslod = self.__annotateClosestMarker(pos_lod)
+        # update map with marker info
+        for pos in sorted_poslod:
+            marker = ""
+            if pos in postns_with_closest_markers:
+                marker = postns_with_closest_markers[pos]
+
+            lod, alpha, hlod = pos_lod[pos]
+            self.lod_array.append((pos, lod, alpha, hlod, marker))
 
     def __generateHeaders(self, npad_left = 10):
-        marker_order = self.marker_order      
+        marker_order = self.marker_order
         max_len = -1
         markerpadd = []
         for marker in marker_order:
@@ -94,9 +105,9 @@ class Converter:
             markerpadd.append(("%%-%ds" % max_len) % marker)
 
         # transpose
-        buffer_left = ("%%%ds" % npad_left) % " "    
+        buffer_left = ("%%%ds" % npad_left) % " "
         return '\n'.join([buffer_left + "  ".join(x) for x in zip(*markerpadd)][::-1])
-  
+
 
     @staticmethod
     def tokenizer(line):
@@ -134,8 +145,6 @@ class Converter:
             print(out_line, file=out_lod)
         out_lod.close()
 
-
-
     def writeDescent(self):
         self.writeHaplo(True)
 
@@ -143,7 +152,8 @@ class Converter:
 
         out_haplo = open(self.out_haplo, "w")
 
-        headers = self.__generateHeaders() + '\n'
+        dummy_l = Converter.haplo_individual_buffer % range(6)
+        headers = self.__generateHeaders(len(dummy_l)) + '\n'
         print(headers, file=out_haplo)
 
         for fam_id in self.haplo_map:
@@ -159,21 +169,30 @@ class Converter:
                 print(indiv_data, alleles[0], file=out_haplo)
                 print(indiv_data, alleles[0], file=out_haplo)
         out_haplo.close()
+    
 
+class Swiftlink(Converter):
+
+    def extractLOD(self, lodfile):
+        pos_lod = {}
+        with open(lodfile, 'r') as lio:
+            lio.readline()
+
+            for line in lio:
+                if line[0] == "-":
+                    dash, pos, lod = map(float, Converter.tokenizer(line))
+                    pos_lod[pos] = (lod, 1, 0)
+
+
+        self.__makeLODArray(pos_lod)
 
 
 class Merlin(Converter):
 
-    def __init__(self, pedigree, mapfile, lodfile):
-        super(self, pedigree, mapfile)
-
-
     def extractDescent(self, file1):
         self.extractHaplo(file1, True)
 
-
     def extractHaplo(self, file1, use_flow=False):
-
         ped_map = {}
 
         tmp = [
@@ -271,7 +290,6 @@ class Merlin(Converter):
             self.haplo_map = ped_map
 
 
-
     def extractLOD(self, file1):
 
         pos_lod = {}
@@ -298,86 +316,100 @@ class Merlin(Converter):
 
                 pos_lod[gpos] = (lod, alpha, hlod)
 
-        postns_with_closest_markers, sorted_poslod = self.__annotateClosestMarker(pos_lod)
-
-        # update map with marker info
-        for pos in sorted_poslod:
-            marker = ""
-            if pos in postns_with_closest_markers:
-                marker = postns_with_closest_markers[pos]
-
-            lod, alpha, hlod = pos_lod[pos]
-
-            self.lod_array.append((pos, lod, alpha, hlod, marker))
-
-
-
+        self.__makeLODArray(pos_lod)
 
 
 class Simwalk(Converter):
 
-    def __init__(self, pedigree, mapfile, hef):
-        super(self, pedigree, mapfile)
-
-
     def extractHaploAndDescent(self, hef):
-        with open(hef, "r") as hio:
-            line = ""
-            while not line.startswith("Pedigree Name,       ID   Father   Mother Sex"):
-                line = hio.readline()
+        
+        tmp = {
+            "_fam"  : None,
+            "_perc" : None,
+            "_allpat" : [],  # alleles
+            "_allmat" : [],  #
+            "_decpat" : [],  # descent
+            "_decmat" : []
+        }
 
-            # Each fam
-            while True:
-                while not line.startswith("________"):
-                    line = hio.readline()
+        def insertDat(tmpdat):
+            if len(tmpdat["_allpat"]) > 0:
+                tmpdat["_perc"][0] = tmpdat["_allpat"]
+                tmpdat["_perc"][1] = tmpdat["_allmat"]
+                tmpdat["_perc"][2] = tmpdat["_decpat"]
+                tmpdat["_perc"][3] = tmpdat["_decmat"]
 
-                    fam_id = int(hio.readline().split("(")[0])
-                    num_indivs = int(hio.readline().split()[0])
-                    hio.readline()  # skip lod
+                tmpdat["_perc"] = None
+                tmpdat["_allmat"] = []
+                tmpdat["_allpat"] = []
+                tmpdat["_decmat"] = []
+                tmpdat["_decpat"] = []
+        
+        
+        dashedlines_found = False
 
-                    tokens = map(int, hio.readline().split())
-                    ind_id, fath_id, moth_id, gender, affect = tokens
+        for line in hio:
+            if line.startswith("____"):
+                if tmp["_perc"] is not None:
+                    insertDat(tmp)
 
-                    tokens = map(int, hio.readline().split())
-                    all1 = []; all2 = [];
-                    while len(tokens) == 6:
-                        indiv = int(
+                dashedlines_found = True
+                continue
+
+            if dashedlines_found and not line.startswith(" "):
+                fam = line.split("(")[0].strip()
+                tmp["_fam"] = int(fam)
+                dashedlines_found = False
+                continue
+
+            tokens = line.splitlines()[0].split()
+
+            if tmp["_fam"] is not None and len(tokens) == 5:
+                insertDat(tmp)
+                ind_id, father_id, mother_id, gender, affected = map(int, tokens)
+                tmp["_perc"] = self.pedigree[tmp["_fam"]][ind_id]
+
+            # Allele data
+            if tmp["_fam"] is not None and tmp["_perc"] is not None and len(tokens) == 6:
+                tokens = map(int, tokens)
+
+                tmp["_allpat"].append( tokens[0] )
+                tmp["_allmat"].append( tokens[1] )
+                tmp["_decpat"].append( tokens[2] )
+                tmp["_decmat"].append( tokens[3] )
 
 
+    def extractLOD(self, scorefile):
+
+        pos_lod = {}
+        
+        with open(scorefile, 'r') as sio:
+            
+            line = sio.readline()
+            while not line.startswith(" NAME  , Haldane cM ,   alpha=1.00   ,"):
+                line = sio.readline()
+
+            line = sio.readline()  # chomp
+            tokens = sio.readline().split()
+
+            while len(tokens) != 0:
+                tokens = [x for x in sio.readline().split() if x != ","]
+                gpos, lod, hlod, alpha = map(float, tokens)
+                if gpos < 0:
+                    continue
+
+                pos_lod[gpos] = (lod, 1, hlod)
+
+        self.__makeLODArray(pos_lod)
+                
 
 
-
-    def extractLOD(self, SCORE, resident, nothing_to_do=file):
-        with open(scorefile, "r") as sio:
-            sio.readline()
-
-            for line in sio:
-                el, ma, dit, en, chanson, der, internet = map(int, line.splitlines()[0].split())
-
-                if el + ma + dit == en - chanson - der / internet:
-                    print >> sys.stderr, line.split(), el ,ma, dit
-                else:
-                    print >> sys.stderr, line
-
-
-
-
+                
+                            
 
 
 
 class Genehunter(Converter):
-
-    def __init__(self, pedigree, mapfile, lod=None, haplo=None):
-        super(self, pedigree, mapfile)
-
-        if lod is not None:
-            self.extractLOD(lod)
-            self.writeLOD()
-
-        if haplo is not None:
-            self.extractHaplo(haplo)
-            self.writeHaplo()
-
 
     def extractHaplo(self, hapfile):
         with open(hapfile, 'r') as hio:
@@ -450,12 +482,12 @@ class Genehunter(Converter):
                 alpha = float(alpha.split("(")[-1])
                 hlod = float(hlod.split(")")[0])
 
-                npl = float(npl)
-                pval = float(pval)
+                #npl = float(npl)
+                #pval = float(pval)
 
                 # insert
                 if gpos not in pos_lod:
-                    pos_lod[gpos] = [lod, alpha, hlod, npl, pval]
+                    pos_lod[gpos] = [lod, alpha, hlod]
                 else:
                     # update if new lod is larger
                     old_lod = pos_lod[gpos][0]
@@ -464,15 +496,4 @@ class Genehunter(Converter):
 
             fio.close()
 
-
-        postns_with_closest_markers, sorted_poslod = self.__annotateClosestMarker(pos_lod)
-
-        # update map with marker info
-        for pos in sorted_poslod:
-            marker = ""
-            if pos in postns_with_closest_markers:
-                marker = postns_with_closest_markers[pos]
-
-            lod, alpha, hlod, npl, pval = pos_lod[pos]
-
-            self.lod_array.append((pos, lod, alpha, hlod, marker))
+        self.__makeLODArray(pos_lod)
