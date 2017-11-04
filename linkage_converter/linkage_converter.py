@@ -16,6 +16,7 @@ class Converter:
 
         self.haplo_map = {}  # fam_id → indiv_id → (all1,all2)
         self.pos_marker = {} # genpos → marker
+        self.marker_order = [] 
 
         self.__populatePedigree(pedin)
         self.__populateMarkerMap(mapin)
@@ -42,7 +43,9 @@ class Converter:
 
             for line in mio:
                 chrom, gpos, marker, ppos, nr = Converter.tokenizer(line)
-                self.pos_marker[float(gpos)] = marker.strip()
+                marker = marker.strip()
+                self.pos_marker[float(gpos)] = marker
+                self.marker_order.append(marker)
 
 
     def __annotateClosestMarker(self, pos_lod):
@@ -77,6 +80,23 @@ class Converter:
         return keys_to_annotate, pos_lod_array
 
 
+    def __generateHeaders(self, npad_left = 10):
+        marker_order = self.marker_order      
+        max_len = -1
+        markerpadd = []
+        for marker in marker_order:
+            nmark = len(marker)
+            if nmark > max_len:
+                max_len = nmark
+
+        # paddleft
+        for marker in marker_order:
+            markerpadd.append(("%%-%ds" % max_len) % marker)
+
+        # transpose
+        buffer_left = ("%%%ds" % npad_left) % " "    
+        return '\n'.join([buffer_left + "  ".join(x) for x in zip(*markerpadd)][::-1])
+  
 
     @staticmethod
     def tokenizer(line):
@@ -123,7 +143,7 @@ class Converter:
 
         out_haplo = open(self.out_haplo, "w")
 
-        headers = self.__generateHeaders()
+        headers = self.__generateHeaders() + '\n'
         print(headers, file=out_haplo)
 
         for fam_id in self.haplo_map:
