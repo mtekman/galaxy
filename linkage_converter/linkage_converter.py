@@ -179,9 +179,6 @@ class Converter:
 
 class Swiftlink(Converter):
 
-    def __init__(self, pedin, mapin):
-        super(pedin, mapin)
-
     def extractLOD(self, lodfile):
         pos_lod = {}
         with open(lodfile, 'r') as lio:
@@ -189,11 +186,11 @@ class Swiftlink(Converter):
 
             for line in lio:
                 if line[0] == "-":
-                    dash, pos, lod = map(float, Converter.tokenizer(line))
+                    pos, lod = map(float, Converter.tokenizer(line)[1:])
                     pos_lod[pos] = (lod, 1, 0)
 
 
-        self.__makeLODArray(pos_lod)
+        self.makeLODArray(pos_lod)
 
 
 class Merlin(Converter):
