@@ -155,15 +155,16 @@ class Converter:
         self.writeHaplo(True)
 
     def writeHaplo(self, descent=False):
-        out_haplo = open(self.out_haplo if not descent else self.out_descent, "w")
+        out_file = open(self.out_haplo if not descent else self.out_descent, "w")
+        map_map = self.haplo_map if not descent else self.descent_map
 
         dummy_l = Converter.haplo_individual_buffer % (1,1,1,1,1,1) # *range(6) (unpack in py3 only...)
         headers = self.__generateHeaders(len(dummy_l)) + '\n'
-        print >> out_haplo, headers
+        print >> out_file, headers
 
-        for fam_id in self.haplo_map:
-            for indiv_id in self.haplo_map[fam_id]:
-                alleles = self.haplo_map[fam_id][indiv_id]
+        for fam_id in map_map:
+            for indiv_id in map_map[fam_id]:
+                alleles = map_map[fam_id][indiv_id]
                 ped_data = self.pedigree[fam_id][indiv_id]
                 father, mother, gender, affect = ped_data
 
@@ -171,10 +172,10 @@ class Converter:
                     fam_id, indiv_id, father, mother, gender, affect
                 )
 
-                print >> out_haplo, indiv_data + "  ".join(map(str,alleles[0]))
-                print >> out_haplo, indiv_data + "  ".join(map(str,alleles[1]))
-        out_haplo.close()
-        print >> stderr, "Wrote: ", out_haplo.name
+                print >> out_file, indiv_data + " ".join(map(lambda x: "%-2d" % x, alleles[0]))
+                print >> out_file, indiv_data + " ".join(map(lambda x: "%-2d" % x, alleles[1]))
+        out_file.close()
+        print >> stderr, "Wrote: ", out_file.name
 
 
 class Swiftlink(Converter):
@@ -196,11 +197,11 @@ class Swiftlink(Converter):
 class Merlin(Converter):
 
     def extractDescent(self, file1):
-        self.extractHaplo(file1, True)
+        self.extractHaplo(file1, True)     
 
     def extractHaplo(self, file1, use_flow=False):
         ped_map = {}
-
+        
         tmp = [
             None,  # fam id
             [],    # [individuals]
@@ -220,10 +221,10 @@ class Merlin(Converter):
                 perc_id = tmp[1][tpa]
                 fam_id = tmp[0]
 
-                if fam_id not in self.haplo_map:
+                if fam_id not in ped_map:
                     ped_map[fam_id] = {}
 
-                if perc_id not in self.haplo_map[fam_id]:
+                if perc_id not in ped_map[fam_id]:
                     ped_map[fam_id][perc_id] = (perc_alleles[0], perc_alleles[1])
 
             # clear
@@ -238,26 +239,17 @@ class Merlin(Converter):
                 if line.startswith("FAMILY"):
                     flushTmpData(tmp)
 
-                    fid = int(line.split()[1])
+                    tmp[0] = int(line.split()[1])
                     continue
 
                 if len(tmp[1]) == 0:  # hunt names after a flush
-                    if line.contains("(") and line.contains(")"):
+                    if line.find("(") != -1 and line.find(")") != -1:
 
                         people = [x.strip() for x in line.splitlines()[0].split("  ") if x.strip()!=""]
 
-                        for p in len(people):
+                        for p in range(len(people)):
                             perc = people[p].split(" ")
                             perc_id = int(perc[0])
-                            #parents = perc[1].split("(")[1].split(")")[0]
-                            #
-                            #mother_id = 0
-                            #father_id = 0
-                            #
-                            #if parents != "F":
-                            #    parents = map(int, parents.split(","))
-                            #    mother_id = parents[0]
-                            #    father_id = parents[1]
 
                             # Add new perc to tmp array with blank alleles
                             tmp[1].append(perc_id)
@@ -268,7 +260,7 @@ class Merlin(Converter):
                 # Allele pairs
                 trimmed = line.strip()
                 if len(trimmed) == 0:
-                    flushTmpData()
+                    flushTmpData(tmp)
                     continue
 
                 multiple_alleles = [x.strip() for x in trimmed.split("   ") if x.strip()!=""]
@@ -277,13 +269,18 @@ class Merlin(Converter):
                     print >> stderr, "Num alleles and num percs mismatch"
                     exit(-1)
 
-                for a in len(multiple_alleles):
+                for a in range(len(multiple_alleles)):
                     alleles = multiple_alleles[a]
                     left_b_right = alleles.split()
 
                     if not use_flow:
                         # pick first phasing
-                        left_b_right = [int(x.split(",")[0].replace("A","")) for x in left_b_right]
+                        left_b_right[0] = int(left_b_right[0].split(",")[0].replace("A","").replace("?","0"))
+                        left_b_right[2] = int(left_b_right[2].split(",")[0].replace("A","").replace("?","0"))
+                    else:
+                        # convert letters to numbers (A - Z)
+                        left_b_right[0] = ord(left_b_right[0]) - 64
+                        left_b_right[2] = ord(left_b_right[2]) - 64
 
                     tmp[2][a][0].append( left_b_right[0] )
                     tmp[2][a][1].append( left_b_right[2] )
@@ -308,8 +305,7 @@ class Merlin(Converter):
 
             tokens = Converter.tokenizer(fio.readline())
 
-            while len(tokens) != 4:
-                tokens = Converter.tokenizer(fio.readline())
+            while len(tokens) == 4:
                 gpos = float(tokens[0])
 
                 lod = tokens[1]
@@ -320,9 +316,10 @@ class Merlin(Converter):
                 alph = float(tokens[2])
                 hlod = float(tokens[3])
 
-                pos_lod[gpos] = (lod, alpha, hlod)
-
-        self.__makeLODArray(pos_lod)
+                pos_lod[gpos] = (lod, alph, hlod)
+                tokens = Converter.tokenizer(fio.readline())
+                
+        self.makeLODArray(pos_lod)
 
 
 class Simwalk(Converter):
@@ -521,7 +518,7 @@ OPTIONS:
 ''' % argv[0]
         exit(-1)
 
-    opts, rem = getopt(argv[4:], "-l:-h:-d")
+    opts, rem = getopt(argv[4:], "-l:-h:-d:")
 
     if len(argv) < 3:
         help()
